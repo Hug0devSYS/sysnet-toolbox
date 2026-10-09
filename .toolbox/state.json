@@ -6,8 +6,8 @@
       "tools_touched": [
         "dnsdoctor"
       ],
-      "result": "local-success-push-refused",
-      "notes": "Repository initialised; dnsdoctor 0.1.0 built with stdlib only (Go module proxy unreachable from the build sandbox). Local gofmt/vet/test -race pass; live DNS smoke test not possible from the sandbox (UDP/53 intercepted). Push to origin/main refused (HTTP 403: Claude GitHub App not installed on the repository); commits delivered as a git bundle."
+      "result": "success",
+      "notes": "Repository initialised; dnsdoctor 0.1.0 built with stdlib only (Go module proxy unreachable from the build sandbox). Local gofmt/vet/test -race pass; live DNS smoke test not possible from the sandbox (UDP/53 intercepted). First push refused (GitHub App not installed); pushed to main after the owner granted access."
     }
   ],
   "tools": {
