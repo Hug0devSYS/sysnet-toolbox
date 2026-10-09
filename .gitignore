@@ -1,0 +1,32 @@
+# Build output
+/bin/
+/dist/
+tools/*/dist/
+tools/dnsdoctor/dnsdoctor
+*.exe
+*.test
+*.out
+coverage.*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local secrets and inventories must never be committed
+.env
+*.pem
+*.key
+secrets.*

@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    name: Detect tools per language
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.scan.outputs.go }}
+      python: ${{ steps.scan.outputs.python }}
+      bash: ${{ steps.scan.outputs.bash }}
+      powershell: ${{ steps.scan.outputs.powershell }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Emit a JSON array of tool directories that contain a marker file.
+          list() {
+            local found=()
+            for d in tools/*/; do
+              d="${d%/}"
+              [ -d "$d" ] || continue
+              if compgen -G "$d/$1" >/dev/null; then found+=("\"$d\""); fi
+            done
+            local IFS=,
+            echo "[${found[*]:-}]"
+          }
+          {
+            echo "go=$(list go.mod)"
+            echo "python=$(list pyproject.toml)"
+            echo "bash=$(list '*.sh')"
+            echo "powershell=$(list '*.ps1')"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  go:
+    name: Go (${{ matrix.tool }})
+    needs: detect
+    if: needs.detect.outputs.go != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: ${{ fromJSON(needs.detect.outputs.go) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.tool }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: false
+      - name: gofmt
+        run: |
+          out="$(gofmt -l .)"
+          if [ -n "$out" ]; then echo "Files need gofmt:"; echo "$out"; exit 1; fi
+      - name: go mod verify
+        run: go mod verify
+      - name: go vet
+        run: go vet ./...
+      - name: go test
+        run: go test -race -count=1 ./...
+      - name: build
+        run: go build -trimpath -ldflags "-s -w" -o /dev/null .
+
+  python:
+    name: Python (${{ matrix.tool }})
+    needs: detect
+    if: needs.detect.outputs.python != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: ${{ fromJSON(needs.detect.outputs.python) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.tool }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ruff pytest
+          python -m pip install -e ".[test]" || python -m pip install -e .
+      - name: ruff
+        run: ruff check . && ruff format --check .
+      - name: pytest
+        run: pytest -q
+
+  bash:
+    name: Bash (${{ matrix.tool }})
+    needs: detect
+    if: needs.detect.outputs.bash != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: ${{ fromJSON(needs.detect.outputs.bash) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.tool }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: find . -name '*.sh' -print0 | xargs -0 shellcheck -x
+      - name: bats
+        run: |
+          if compgen -G "tests/*.bats" >/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq bats
+            bats tests
+          else
+            echo "no bats tests"
+          fi
+
+  powershell:
+    name: PowerShell (${{ matrix.tool }}, ${{ matrix.os }})
+    needs: detect
+    if: needs.detect.outputs.powershell != '[]'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: ${{ fromJSON(needs.detect.outputs.powershell) }}
+        os: [windows-latest, ubuntu-latest]
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: ${{ matrix.tool }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install modules
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+          Install-Module Pester -MinimumVersion 5.5.0 -Scope CurrentUser -Force -SkipPublisherCheck
+      - name: PSScriptAnalyzer
+        run: |
+          $r = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Warning,Error
+          $r | Format-Table -AutoSize
+          if ($r) { exit 1 }
+      - name: Pester
+        run: |
+          $c = New-PesterConfiguration
+          $c.Run.Path = '.'
+          $c.Run.Exit = $true
+          $c.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $c
