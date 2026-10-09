@@ -1,0 +1,21 @@
+{
+  "runs": [
+    {
+      "date": "2026-10-09",
+      "mode": "init+new-tool",
+      "tools_touched": [
+        "dnsdoctor"
+      ],
+      "result": "local-success-push-refused",
+      "notes": "Repository initialised; dnsdoctor 0.1.0 built with stdlib only (Go module proxy unreachable from the build sandbox). Local gofmt/vet/test -race pass; live DNS smoke test not possible from the sandbox (UDP/53 intercepted). Push to origin/main refused (HTTP 403: Claude GitHub App not installed on the repository); commits delivered as a git bundle."
+    }
+  ],
+  "tools": {
+    "dnsdoctor": {
+      "language": "Go",
+      "version": "0.1.0",
+      "created": "2026-10-09",
+      "last_maintenance": "2026-10-09"
+    }
+  }
+}
