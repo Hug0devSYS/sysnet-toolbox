@@ -3,6 +3,7 @@
 /dist/
 tools/*/dist/
 tools/dnsdoctor/dnsdoctor
+tools/tlsaudit/tlsaudit
 *.exe
 *.test
 *.out

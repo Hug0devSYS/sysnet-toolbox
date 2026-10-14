@@ -22,6 +22,7 @@ Every tool in this repository follows the same rules:
 | Tool | Language | Description | Status |
 |------|----------|-------------|--------|
 | [dnsdoctor](tools/dnsdoctor/) | Go | End-to-end DNS zone diagnostics: iterative walk from the root, parent/child NS consistency, glue, lame delegations, SOA serial drift, DNSSEC chain of trust. | Beta (v0.1.0) |
+| [tlsaudit](tools/tlsaudit/) | Go | TLS fleet audit: expiry, incomplete/untrusted chains, SAN mismatch, SSLv3–TLS 1.3, full cipher suite enumeration, DHE strength, OCSP stapling, STARTTLS; text/JSON/summary output and Prometheus textfile metrics. | Beta (v0.1.0) |
 
 Planned tools and their priority are tracked in [ROADMAP.md](ROADMAP.md).
 
@@ -42,6 +43,9 @@ Each tool is self-contained: it has its own dependency manifest (`go.mod`,
 # Go tools
 go install github.com/Hug0devSYS/sysnet-toolbox/tools/dnsdoctor@latest
 dnsdoctor example.com
+
+go install github.com/Hug0devSYS/sysnet-toolbox/tools/tlsaudit@latest
+tlsaudit --summary www.example.com smtp://mx.example.com
 ```
 
 See each tool's README for installation, usage, sample output, limitations
