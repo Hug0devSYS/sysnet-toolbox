@@ -8,6 +8,15 @@
       ],
       "result": "success",
       "notes": "Repository initialised; dnsdoctor 0.1.0 built with stdlib only (Go module proxy unreachable from the build sandbox). Local gofmt/vet/test -race pass; live DNS smoke test not possible from the sandbox (UDP/53 intercepted). First push refused (GitHub App not installed); pushed to main after the owner granted access."
+    },
+    {
+      "date": "2026-10-14",
+      "mode": "new-tool",
+      "tools_touched": [
+        "tlsaudit"
+      ],
+      "result": "success",
+      "notes": "Fewer than 3 tools, so no maintenance pass this run. tlsaudit 0.1.0 built with stdlib only (Go module proxy still unreachable). gofmt/vet/test -race pass locally against loopback TLS servers; live smoke test only possible through the sandbox's TLS-intercepting egress proxy."
     }
   ],
   "tools": {
@@ -16,6 +25,12 @@
       "version": "0.1.0",
       "created": "2026-10-09",
       "last_maintenance": "2026-10-09"
+    },
+    "tlsaudit": {
+      "language": "Go",
+      "version": "0.1.0",
+      "created": "2026-10-14",
+      "last_maintenance": "2026-10-14"
     }
   }
 }

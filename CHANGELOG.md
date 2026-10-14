@@ -7,6 +7,34 @@ and each tool is versioned independently following
 
 ## [Unreleased]
 
+## 2026-10-14
+
+### Added
+
+- **tlsaudit 0.1.0** (Go): TLS endpoint fleet audit, zero third-party
+  dependencies.
+  - Certificate checks: expiry thresholds (`--warn-days`, `--crit-days`) for
+    leaf and chain, key size, SHA-1/MD5 signatures, missing SAN, lifetime
+    above 398 days, SAN/hostname match (SNI, wildcards, IP SANs).
+  - Independent chain validation (system roots or `--ca-file`/`--ca-only`):
+    trusted / incomplete / untrusted / expired / invalid, optional AIA
+    download (`--fetch-aia`) to confirm missing intermediates, out-of-order,
+    superfluous and root certificates in the served chain.
+  - Raw ClientHello engine: SSLv3, TLS 1.0, 1.1 and 1.2 detection and full
+    cipher suite enumeration over ~140 IANA suites (including export, NULL,
+    anonymous, RC4, DES, 3DES and DHE), graded insecure/weak/legacy/good;
+    DHE group size (Logjam); ECDHE curve; RFC 5746 secure renegotiation;
+    RFC 7507 TLS_FALLBACK_SCSV; RFC 7685 padding. TLS 1.3 via crypto/tls.
+  - Stapled OCSP parsing and signature verification (issuer or delegated
+    responder): Must-Staple, revoked, unknown, stale staples.
+  - STARTTLS for SMTP, IMAP, POP3, FTP, LDAP and PostgreSQL; URL-style
+    targets (`smtp://`, `ldaps://`, ...) and per-target `sni=`, `connect=`,
+    `starttls=` options; target files (`-f`, stdin).
+  - Text, `--json` and `--summary` output, Nagios-compatible exit codes,
+    Prometheus textfile metrics written atomically (`--prom-file`), parallel
+    audits (`--concurrency`), per-connection and per-target time budgets.
+- Roadmap: new ideas `ct-watch`, `cfg-vault` and `l2-guard`.
+
 ## 2026-10-09
 
 ### Added
