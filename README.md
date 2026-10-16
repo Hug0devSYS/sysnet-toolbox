@@ -23,6 +23,7 @@ Every tool in this repository follows the same rules:
 |------|----------|-------------|--------|
 | [dnsdoctor](tools/dnsdoctor/) | Go | End-to-end DNS zone diagnostics: iterative walk from the root, parent/child NS consistency, glue, lame delegations, SOA serial drift, DNSSEC chain of trust. | Beta (v0.1.0) |
 | [tlsaudit](tools/tlsaudit/) | Go | TLS fleet audit: expiry, incomplete/untrusted chains, SAN mismatch, SSLv3–TLS 1.3, full cipher suite enumeration, DHE strength, OCSP stapling, STARTTLS; text/JSON/summary output and Prometheus textfile metrics. | Beta (v0.1.0) |
+| [nftlint](tools/nftlint/) | Python | nftables / iptables-save static analysis: shadowed, redundant and unreachable rules, any-any accepts, permissive policies, missing IPv6 filtering; correlates `ss` listening sockets with the input path to show what is really reachable and from which sources. | Beta (v0.1.0) |
 
 Planned tools and their priority are tracked in [ROADMAP.md](ROADMAP.md).
 
@@ -46,6 +47,11 @@ dnsdoctor example.com
 
 go install github.com/Hug0devSYS/sysnet-toolbox/tools/tlsaudit@latest
 tlsaudit --summary www.example.com smtp://mx.example.com
+
+# Python tools
+pipx install "git+https://github.com/Hug0devSYS/sysnet-toolbox.git#subdirectory=tools/nftlint"
+sudo nft -j list ruleset > rules.json && ss -tulnp > ss.txt
+nftlint rules.json --ss ss.txt
 ```
 
 See each tool's README for installation, usage, sample output, limitations

@@ -7,6 +7,34 @@ and each tool is versioned independently following
 
 ## [Unreleased]
 
+## 2026-10-16
+
+### Added
+
+- **nftlint 0.1.0** (Python, standard library only): static analysis of
+  nftables (`nft -j list ruleset`) and `iptables-save` / `ip6tables-save`
+  rulesets.
+  - Common rule model with exact interval sets for nfproto, L4 protocol,
+    ports, IPv4/IPv6 addresses and conntrack state (negations, ranges,
+    prefixes, anonymous and named sets), interface patterns, verdict maps,
+    jump/goto/return; unmodelled expressions kept as opaque conditions so the
+    analysis stays conservative.
+  - Checks: shadowed rules with conflicting verdicts, redundant rules,
+    rules after catch-all rules, unreachable and undefined chains, any-any
+    accepts, permissive default policies (evaluated across every base chain
+    of the hook, including catch-all rules reached via jumps), sensitive
+    management/database ports open to any source, IPv4-only filtering.
+  - Socket exposure: `ss -tulnp` parsing (dual-stack, scoped and IPv4-mapped
+    addresses) and symbolic evaluation of a first packet through all input
+    base chains in priority order with a symbolic source address, reporting
+    open / restricted (exact allowed prefixes) / conditional / filtered /
+    unfiltered sockets, services exposed only by a default-accept policy,
+    stale openings and families without an analysed ruleset.
+  - Text and `--json` output, Nagios-compatible exit codes, `--min-severity`,
+    `--ignore`, `--sensitive-ports`, read-only `--live` mode (`nft`, with
+    `iptables-save`/`ip6tables-save` fallback, and `ss`, with timeouts).
+- Roadmap: new ideas `wg-audit`, `zonelint` and `bond-check`.
+
 ## 2026-10-14
 
 ### Added

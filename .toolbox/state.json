@@ -17,6 +17,15 @@
       ],
       "result": "success",
       "notes": "Fewer than 3 tools, so no maintenance pass this run. tlsaudit 0.1.0 built with stdlib only (Go module proxy still unreachable). gofmt/vet/test -race pass locally against loopback TLS servers; live smoke test only possible through the sandbox's TLS-intercepting egress proxy."
+    },
+    {
+      "date": "2026-10-16",
+      "mode": "new-tool",
+      "tools_touched": [
+        "nftlint"
+      ],
+      "result": "success",
+      "notes": "Fewer than 3 tools before this run, so no maintenance pass. nftlint 0.1.0 built with the Python standard library only. ruff check/format and 84 pytest tests pass on Python 3.13 and 3.9; JSON fixtures generated with real nft 1.0.9 in an unprivileged network namespace, and --live verified against a kernel ruleset loaded in that namespace. Next run: 3 tools, so new tool (netcfg-diff) + maintenance of dnsdoctor (oldest)."
     }
   ],
   "tools": {
@@ -31,6 +40,12 @@
       "version": "0.1.0",
       "created": "2026-10-14",
       "last_maintenance": "2026-10-14"
+    },
+    "nftlint": {
+      "language": "Python",
+      "version": "0.1.0",
+      "created": "2026-10-16",
+      "last_maintenance": "2026-10-16"
     }
   }
 }
