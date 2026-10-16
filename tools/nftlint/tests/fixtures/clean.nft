@@ -1,0 +1,22 @@
+table inet filter {
+	set mgmt {
+		type ipv4_addr
+		flags interval
+		elements = { 10.0.0.0/8 }
+	}
+
+	chain input {
+		type filter hook input priority filter; policy drop;
+		iif "lo" accept
+		ct state vmap { established : accept, related : accept, invalid : drop }
+		meta l4proto ipv6-icmp accept
+		icmp type echo-request limit rate 10/second accept
+		tcp dport 22 ip saddr @mgmt accept
+		tcp dport { 80, 443 } accept
+		udp dport 53 accept
+	}
+
+	chain forward {
+		type filter hook forward priority filter; policy drop;
+	}
+}

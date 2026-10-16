@@ -1,0 +1,11 @@
+Netid State  Recv-Q Send-Q   Local Address:Port  Peer Address:Port Process
+udp   UNCONN 0      0        127.0.0.53%lo:53         0.0.0.0:*     users:(("systemd-resolve",pid=500,fd=13))
+udp   UNCONN 0      0              0.0.0.0:161        0.0.0.0:*     users:(("snmpd",pid=640,fd=6))
+tcp   LISTEN 0      4096           0.0.0.0:22         0.0.0.0:*     users:(("sshd",pid=812,fd=3))
+tcp   LISTEN 0      4096              [::]:22            [::]:*     users:(("sshd",pid=812,fd=4))
+tcp   LISTEN 0      511                  *:443              *:*     users:(("nginx",pid=900,fd=6))
+tcp   LISTEN 0      80           127.0.0.1:3306       0.0.0.0:*     users:(("mariadbd",pid=950,fd=20))
+tcp   LISTEN 0      244            0.0.0.0:5432       0.0.0.0:*     users:(("postgres",pid=990,fd=5))
+tcp   LISTEN 0      128                  *:9100             *:*     users:(("node_exporter",pid=1000,fd=3))
+tcp   LISTEN 0      511          0.0.0.0:6379         0.0.0.0:*     users:(("redis-server",pid=1100,fd=6))
+tcp   LISTEN 0      128   192.0.2.50%eth0:8443        0.0.0.0:*     users:(("haproxy",pid=1200,fd=7))

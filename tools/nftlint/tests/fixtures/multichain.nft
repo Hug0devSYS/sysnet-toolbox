@@ -1,0 +1,20 @@
+# Two base chains on the input hook (e.g. a distro table plus a local one).
+table inet early {
+	chain input {
+		type filter hook input priority -10; policy accept;
+		tcp dport 8080 ip saddr 198.51.100.0/24 drop
+		tcp dport 2222 goto ssh_gate
+	}
+	chain ssh_gate {
+		ip saddr 10.0.0.0/8 return
+		drop
+	}
+}
+table inet late {
+	chain input {
+		type filter hook input priority 10; policy drop;
+		tcp dport { 2222, 8080 } accept
+		tcp dport 8081 meta mark 0x1 accept
+		tcp dport 8082 iifname "eth1" accept
+	}
+}

@@ -1,0 +1,271 @@
+{
+ "nftables": [
+  {
+   "metainfo": {
+    "version": "1.0.9",
+    "release_name": "Old Doc Yak #3",
+    "json_schema_version": 1
+   }
+  },
+  {
+   "table": {
+    "family": "inet",
+    "name": "early",
+    "handle": 1
+   }
+  },
+  {
+   "chain": {
+    "family": "inet",
+    "table": "early",
+    "name": "input",
+    "handle": 1,
+    "type": "filter",
+    "hook": "input",
+    "prio": -10,
+    "policy": "accept"
+   }
+  },
+  {
+   "chain": {
+    "family": "inet",
+    "table": "early",
+    "name": "ssh_gate",
+    "handle": 2
+   }
+  },
+  {
+   "rule": {
+    "family": "inet",
+    "table": "early",
+    "chain": "input",
+    "handle": 3,
+    "expr": [
+     {
+      "match": {
+       "op": "==",
+       "left": {
+        "payload": {
+         "protocol": "tcp",
+         "field": "dport"
+        }
+       },
+       "right": 8080
+      }
+     },
+     {
+      "match": {
+       "op": "==",
+       "left": {
+        "payload": {
+         "protocol": "ip",
+         "field": "saddr"
+        }
+       },
+       "right": {
+        "prefix": {
+         "addr": "198.51.100.0",
+         "len": 24
+        }
+       }
+      }
+     },
+     {
+      "drop": null
+     }
+    ]
+   }
+  },
+  {
+   "rule": {
+    "family": "inet",
+    "table": "early",
+    "chain": "input",
+    "handle": 4,
+    "expr": [
+     {
+      "match": {
+       "op": "==",
+       "left": {
+        "payload": {
+         "protocol": "tcp",
+         "field": "dport"
+        }
+       },
+       "right": 2222
+      }
+     },
+     {
+      "goto": {
+       "target": "ssh_gate"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "rule": {
+    "family": "inet",
+    "table": "early",
+    "chain": "ssh_gate",
+    "handle": 5,
+    "expr": [
+     {
+      "match": {
+       "op": "==",
+       "left": {
+        "payload": {
+         "protocol": "ip",
+         "field": "saddr"
+        }
+       },
+       "right": {
+        "prefix": {
+         "addr": "10.0.0.0",
+         "len": 8
+        }
+       }
+      }
+     },
+     {
+      "return": null
+     }
+    ]
+   }
+  },
+  {
+   "rule": {
+    "family": "inet",
+    "table": "early",
+    "chain": "ssh_gate",
+    "handle": 6,
+    "expr": [
+     {
+      "drop": null
+     }
+    ]
+   }
+  },
+  {
+   "table": {
+    "family": "inet",
+    "name": "late",
+    "handle": 2
+   }
+  },
+  {
+   "chain": {
+    "family": "inet",
+    "table": "late",
+    "name": "input",
+    "handle": 1,
+    "type": "filter",
+    "hook": "input",
+    "prio": 10,
+    "policy": "drop"
+   }
+  },
+  {
+   "rule": {
+    "family": "inet",
+    "table": "late",
+    "chain": "input",
+    "handle": 3,
+    "expr": [
+     {
+      "match": {
+       "op": "==",
+       "left": {
+        "payload": {
+         "protocol": "tcp",
+         "field": "dport"
+        }
+       },
+       "right": {
+        "set": [
+         2222,
+         8080
+        ]
+       }
+      }
+     },
+     {
+      "accept": null
+     }
+    ]
+   }
+  },
+  {
+   "rule": {
+    "family": "inet",
+    "table": "late",
+    "chain": "input",
+    "handle": 4,
+    "expr": [
+     {
+      "match": {
+       "op": "==",
+       "left": {
+        "payload": {
+         "protocol": "tcp",
+         "field": "dport"
+        }
+       },
+       "right": 8081
+      }
+     },
+     {
+      "match": {
+       "op": "==",
+       "left": {
+        "meta": {
+         "key": "mark"
+        }
+       },
+       "right": 1
+      }
+     },
+     {
+      "accept": null
+     }
+    ]
+   }
+  },
+  {
+   "rule": {
+    "family": "inet",
+    "table": "late",
+    "chain": "input",
+    "handle": 5,
+    "expr": [
+     {
+      "match": {
+       "op": "==",
+       "left": {
+        "payload": {
+         "protocol": "tcp",
+         "field": "dport"
+        }
+       },
+       "right": 8082
+      }
+     },
+     {
+      "match": {
+       "op": "==",
+       "left": {
+        "meta": {
+         "key": "iifname"
+        }
+       },
+       "right": "eth1"
+      }
+     },
+     {
+      "accept": null
+     }
+    ]
+   }
+  }
+ ]
+}

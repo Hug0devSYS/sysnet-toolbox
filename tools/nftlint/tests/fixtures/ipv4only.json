@@ -1,0 +1,97 @@
+{
+ "nftables": [
+  {
+   "metainfo": {
+    "version": "1.0.9",
+    "release_name": "Old Doc Yak #3",
+    "json_schema_version": 1
+   }
+  },
+  {
+   "table": {
+    "family": "ip",
+    "name": "filter",
+    "handle": 1
+   }
+  },
+  {
+   "chain": {
+    "family": "ip",
+    "table": "filter",
+    "name": "input",
+    "handle": 1,
+    "type": "filter",
+    "hook": "input",
+    "prio": 0,
+    "policy": "accept"
+   }
+  },
+  {
+   "rule": {
+    "family": "ip",
+    "table": "filter",
+    "chain": "input",
+    "handle": 2,
+    "expr": [
+     {
+      "match": {
+       "op": "==",
+       "left": {
+        "payload": {
+         "protocol": "tcp",
+         "field": "dport"
+        }
+       },
+       "right": 22
+      }
+     },
+     {
+      "accept": null
+     }
+    ]
+   }
+  },
+  {
+   "rule": {
+    "family": "ip",
+    "table": "filter",
+    "chain": "input",
+    "handle": 3,
+    "expr": [
+     {
+      "match": {
+       "op": "==",
+       "left": {
+        "payload": {
+         "protocol": "tcp",
+         "field": "dport"
+        }
+       },
+       "right": 3389
+      }
+     },
+     {
+      "match": {
+       "op": "==",
+       "left": {
+        "payload": {
+         "protocol": "ip",
+         "field": "saddr"
+        }
+       },
+       "right": {
+        "prefix": {
+         "addr": "203.0.113.0",
+         "len": 24
+        }
+       }
+      }
+     },
+     {
+      "accept": null
+     }
+    ]
+   }
+  }
+ ]
+}
