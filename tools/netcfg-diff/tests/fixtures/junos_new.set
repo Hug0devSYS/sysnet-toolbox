@@ -1,0 +1,35 @@
+set version 22.4R3.25
+set system host-name mx-edge1-new
+set system root-authentication encrypted-password "$6$abc$KJHGFDSAkjhgfdsa1234567890"
+set system name-server 192.0.2.54
+set system name-server 192.0.2.53
+set system services ssh root-login deny
+set system services netconf ssh
+set interfaces ge-0/0/0 description "Uplink to ISP A"
+set interfaces ge-0/0/0 unit 0 family inet filter input PROTECT-RE
+set interfaces ge-0/0/0 unit 0 family inet address 198.51.100.2/30
+set interfaces ge-0/0/1 unit 0 family inet address 10.1.0.1/24
+set interfaces ge-0/0/2 unit 0 family inet address 10.2.0.1/24
+deactivate interfaces ge-0/0/2
+set policy-options policy-statement EXPORT-ISP term aggregates from protocol aggregate
+set policy-options policy-statement EXPORT-ISP term aggregates then accept
+set policy-options policy-statement EXPORT-ISP term reject-all then reject
+set firewall family inet filter PROTECT-RE term icmp from protocol icmp
+set firewall family inet filter PROTECT-RE term icmp then accept
+set firewall family inet filter PROTECT-RE term ssh from source-address 10.0.0.0/8
+set firewall family inet filter PROTECT-RE term ssh from protocol tcp
+set firewall family inet filter PROTECT-RE term ssh from destination-port ssh
+set firewall family inet filter PROTECT-RE term ssh then accept
+set firewall family inet filter PROTECT-RE term bgp from protocol tcp
+set firewall family inet filter PROTECT-RE term bgp from port bgp
+set firewall family inet filter PROTECT-RE term bgp then accept
+set firewall family inet filter PROTECT-RE term ntp from protocol udp
+set firewall family inet filter PROTECT-RE term ntp from port ntp
+set firewall family inet filter PROTECT-RE term ntp then accept
+set firewall family inet filter PROTECT-RE term default-deny then discard
+set protocols bgp group ISP-A type external
+set protocols bgp group ISP-A export DEFAULT-DENY
+set protocols bgp group ISP-A export EXPORT-ISP
+set protocols bgp group ISP-A peer-as 64500
+set protocols bgp group ISP-A neighbor 198.51.100.1
+set snmp community s3cr3t authorization read-only
