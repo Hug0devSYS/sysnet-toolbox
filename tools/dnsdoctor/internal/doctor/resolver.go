@@ -179,7 +179,19 @@ func (r *Resolver) walk(ctx context.Context, name string, t dnswire.Type, fromRo
 		if len(servers) == 0 {
 			return res, fmt.Errorf("%w for zone %s", ErrNoServers, zone)
 		}
-		resp, server, rtt, err := r.queryAny(ctx, servers, name, t, true)
+		// A server answering NOERROR without authority and without a usable
+		// downward referral (typically an upward referral to the root) is
+		// lame for this zone: skip it and ask the zone's other servers.
+		usable := func(resp *dnswire.Msg) error {
+			if resp.Rcode == dnswire.RcodeNXDomain || len(resp.Answer) > 0 || resp.Authoritative {
+				return nil
+			}
+			if _, ok := parseReferral(resp, zone, name); ok {
+				return nil
+			}
+			return ErrLameReferral
+		}
+		resp, server, rtt, err := r.queryAny(ctx, servers, name, t, true, usable)
 		if err != nil {
 			return res, fmt.Errorf("zone %s: %w", zone, err)
 		}
@@ -191,11 +203,7 @@ func (r *Resolver) walk(ctx context.Context, name string, t dnswire.Type, fromRo
 		if len(resp.Answer) > 0 || resp.Authoritative {
 			return res, nil
 		}
-		ref, ok := parseReferral(resp, zone, name)
-		if !ok {
-			// Non-authoritative empty answer without a usable referral.
-			return res, fmt.Errorf("%w from %s (zone %s)", ErrLameReferral, server, zone)
-		}
+		ref, _ := parseReferral(resp, zone, name) // validated by usable()
 		ref.Server = server.String()
 		ref.RTTMillis = float64(rtt.Microseconds()) / 1000
 		next, err := r.serversFor(ctx, ref, depth)
@@ -215,9 +223,13 @@ func (r *Resolver) walk(ctx context.Context, name string, t dnswire.Type, fromRo
 	return res, ErrLoop
 }
 
-// queryAny tries servers in order until one gives a usable response.
-func (r *Resolver) queryAny(ctx context.Context, servers []netip.Addr, name string, t dnswire.Type, do bool) (*dnswire.Msg, netip.Addr, time.Duration, error) {
+// queryAny tries servers in order until one gives a usable response: rcode
+// NOERROR or NXDOMAIN and, when usable is not nil, accepted by usable. When
+// every server was rejected by usable, the error also wraps ErrLameReferral.
+func (r *Resolver) queryAny(ctx context.Context, servers []netip.Addr, name string, t dnswire.Type, do bool,
+	usable func(*dnswire.Msg) error) (*dnswire.Msg, netip.Addr, time.Duration, error) {
 	var errs []string
+	lame := 0
 	for _, s := range servers {
 		if err := ctx.Err(); err != nil {
 			return nil, netip.Addr{}, 0, err
@@ -229,13 +241,24 @@ func (r *Resolver) queryAny(ctx context.Context, servers []netip.Addr, name stri
 		}
 		switch resp.Rcode {
 		case dnswire.RcodeSuccess, dnswire.RcodeNXDomain:
+			if usable != nil {
+				if err := usable(resp); err != nil {
+					lame++
+					errs = append(errs, fmt.Sprintf("%s: %v", s, err))
+					continue
+				}
+			}
 			return resp, s, rtt, nil
 		default:
 			errs = append(errs, fmt.Sprintf("%s: %s", s, dnswire.RcodeString(resp.Rcode)))
 		}
 	}
+	total := len(errs)
 	if len(errs) > 3 {
 		errs = append(errs[:3], fmt.Sprintf("and %d more", len(errs)-3))
+	}
+	if lame > 0 && lame == total {
+		return nil, netip.Addr{}, 0, fmt.Errorf("%w: %w (%s)", ErrAllFailed, ErrLameReferral, strings.Join(errs, "; "))
 	}
 	return nil, netip.Addr{}, 0, fmt.Errorf("%w (%s)", ErrAllFailed, strings.Join(errs, "; "))
 }

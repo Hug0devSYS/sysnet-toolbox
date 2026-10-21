@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/netip"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -16,7 +17,7 @@ import (
 
 // server starts UDP and TCP listeners on the same localhost port.
 // udpMode: "truncate" sets TC; "spoof" sends a wrong-ID packet first;
-// "silent" never answers.
+// "silent" never answers; "truncate-notcp" sets TC and resets TCP connections.
 func server(t *testing.T, udpMode string) netip.AddrPort {
 	t.Helper()
 	tl, err := net.Listen("tcp", "127.0.0.1:0")
@@ -52,7 +53,7 @@ func server(t *testing.T, udpMode string) netip.AddrPort {
 			switch udpMode {
 			case "silent":
 				continue
-			case "truncate":
+			case "truncate", "truncate-notcp":
 				_, _ = ul.WriteTo(answer(q, true), addr)
 			case "spoof":
 				bad := *q
@@ -73,6 +74,9 @@ func server(t *testing.T, udpMode string) netip.AddrPort {
 			}
 			go func(c net.Conn) {
 				defer c.Close()
+				if udpMode == "truncate-notcp" {
+					return
+				}
 				var lb [2]byte
 				if _, err := io.ReadFull(c, lb[:]); err != nil {
 					return
@@ -118,6 +122,15 @@ func TestTruncationFallsBackToTCP(t *testing.T) {
 	}
 	if r.Truncated || len(r.Answer) != 1 {
 		t.Fatalf("expected full TCP answer, got %+v", r)
+	}
+}
+
+func TestTruncationWithBrokenTCPIsExplicit(t *testing.T) {
+	addr := server(t, "truncate-notcp")
+	n := &Net{Timeout: 2 * time.Second}
+	_, _, err := n.Exchange(context.Background(), addr, query())
+	if err == nil || !strings.Contains(err.Error(), "TCP fallback after truncated UDP response") {
+		t.Fatalf("expected explicit TCP fallback error, got %v", err)
 	}
 }
 

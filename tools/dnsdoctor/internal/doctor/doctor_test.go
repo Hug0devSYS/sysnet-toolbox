@@ -33,6 +33,7 @@ type worldCfg struct {
 	extraChildNS bool
 	wrongGlue    bool
 	ipv6Unreach  bool
+	tld1Behavior fakedns.Behavior
 }
 
 type world struct {
@@ -87,7 +88,7 @@ func newWorld(t *testing.T, c worldCfg) *world {
 
 	n := fakedns.NewNet()
 	n.Host(rootAddr, root)
-	n.Host(tld1, tld)
+	n.Host(tld1, tld).Behavior = c.tld1Behavior
 	n.Host(tld2, tld)
 	n.Host(ns1Addr, zone)
 	z2 := zone
@@ -366,5 +367,35 @@ func TestWriteText(t *testing.T) {
 	}
 	if strings.Contains(out, "\x1b[") {
 		t.Fatal("color codes emitted with color=false")
+	}
+}
+
+// A lame parent server (upward referral) must not abort the walk: the other
+// servers of the parent zone are tried, as a resolver would.
+func TestWalkSurvivesLameParentServer(t *testing.T) {
+	for _, b := range []fakedns.Behavior{fakedns.UpwardReferral, fakedns.NonAuth} {
+		rep, err := diagnose(t, worldCfg{tld1Behavior: b}, "example.test.")
+		if err != nil {
+			t.Fatalf("behavior %d: %v", b, err)
+		}
+		if rep.Summary.Errors != 0 || rep.ParentZone != "test." || len(rep.Delegation) != 2 {
+			dump(t, rep)
+			t.Fatalf("behavior %d: summary %+v", b, rep.Summary)
+		}
+		if b == fakedns.UpwardReferral && rep.Delegation[1].Server != tld2 {
+			t.Fatalf("behavior %d: referral served by %s, want %s", b, rep.Delegation[1].Server, tld2)
+		}
+	}
+}
+
+func TestWalkAllServersLame(t *testing.T) {
+	w := newWorld(t, worldCfg{tld1Behavior: fakedns.UpwardReferral})
+	w.net.Servers[netip.MustParseAddr(tld2)].Behavior = fakedns.UpwardReferral
+	_, err := w.doctor().Diagnose(context.Background(), "example.test.")
+	if err == nil || !errors.Is(err, ErrLameReferral) {
+		t.Fatalf("err = %v, want ErrLameReferral", err)
+	}
+	if !strings.Contains(err.Error(), tld1) || !strings.Contains(err.Error(), tld2) {
+		t.Fatalf("error should name every lame server: %v", err)
 	}
 }

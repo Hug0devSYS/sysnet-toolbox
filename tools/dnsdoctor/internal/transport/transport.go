@@ -72,7 +72,11 @@ func (n *Net) Exchange(ctx context.Context, server netip.AddrPort, q *dnswire.Ms
 		start := time.Now()
 		resp, err := n.exchangeUDP(ctx, server, q, wire)
 		if err == nil && resp.Truncated {
-			resp, err = n.exchangeTCP(ctx, server, q, wire)
+			if resp, err = n.exchangeTCP(ctx, server, q, wire); err != nil {
+				// Name the TCP failure explicitly: DNS over TCP is mandatory
+				// (RFC 7766) and a filtered TCP/53 is a finding of its own.
+				err = fmt.Errorf("TCP fallback after truncated UDP response: %w", err)
+			}
 		}
 		if err == nil {
 			return resp, time.Since(start), nil

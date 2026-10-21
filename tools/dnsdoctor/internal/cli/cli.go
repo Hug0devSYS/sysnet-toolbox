@@ -19,7 +19,7 @@ import (
 )
 
 // Version is overridden at build time with -ldflags "-X .../cli.Version=x.y.z".
-var Version = "0.1.0"
+var Version = "0.1.1"
 
 // Exit codes (Nagios/Icinga compatible).
 const (

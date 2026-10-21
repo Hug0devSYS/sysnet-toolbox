@@ -33,7 +33,7 @@ go install github.com/Hug0devSYS/sysnet-toolbox/tools/dnsdoctor@latest
 
 # or from a checkout
 cd tools/dnsdoctor
-go build -trimpath -ldflags "-s -w -X github.com/Hug0devSYS/sysnet-toolbox/tools/dnsdoctor/internal/cli.Version=0.1.0" -o dnsdoctor .
+go build -trimpath -ldflags "-s -w -X github.com/Hug0devSYS/sysnet-toolbox/tools/dnsdoctor/internal/cli.Version=0.1.1" -o dnsdoctor .
 
 # static cross-compilation, e.g. for a jump host
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -o dnsdoctor-linux-arm64 .
@@ -163,8 +163,17 @@ for that address family from the host running the check).
    by a key matching a DS), then the target's SOA and NS RRsets.
 
 UDP responses are matched on ID and question (mismatched or malformed
-packets are ignored), truncated answers are retried over TCP, and old
-servers that reject EDNS are retried without it.
+packets are ignored), truncated answers are retried over TCP (a failed TCP
+fallback is reported as such, since DNS over TCP is mandatory per RFC 7766),
+and old servers that reject EDNS are retried without it.
+
+The walk itself tolerates lame servers the way a resolver does: a server
+that answers NOERROR without authority and without a usable downward
+referral (for example an upward referral to the root) is skipped and the
+zone's next server is asked. The same rule applies to the DNSSEC walk, so an
+empty non-authoritative reply is never read as "no DS" (insecure) or "no
+DNSKEY" (bogus). Lame servers of the *target* zone are still reported by the
+`lame-delegation` check, which probes every address individually.
 
 ## Limitations
 

@@ -117,7 +117,7 @@ func (d *Doctor) validateChain(ctx context.Context, rep *Report, res *walkResult
 			dsSet = anchors
 			link.Detail = "trust anchor"
 		} else {
-			resp, _, _, err := d.R.queryAny(ctx, c.parentServers, c.zone, dnswire.TypeDS, true)
+			resp, _, _, err := d.R.queryAny(ctx, c.parentServers, c.zone, dnswire.TypeDS, true, authoritativeAnswer)
 			if err != nil {
 				return finishChain(rep, out, link, DNSSECIndeterminate, fmt.Sprintf("DS query to parent failed: %v", err))
 			}
@@ -149,7 +149,7 @@ func (d *Doctor) validateChain(ctx context.Context, rep *Report, res *walkResult
 			link.DS = append(link.DS, ds.String())
 		}
 
-		resp, _, _, err := d.R.queryAny(ctx, c.servers, c.zone, dnswire.TypeDNSKEY, true)
+		resp, _, _, err := d.R.queryAny(ctx, c.servers, c.zone, dnswire.TypeDNSKEY, true, authoritativeAnswer)
 		if err != nil {
 			return finishChain(rep, out, link, DNSSECIndeterminate, fmt.Sprintf("DNSKEY query failed: %v", err))
 		}
@@ -209,7 +209,7 @@ func (d *Doctor) validateChain(ctx context.Context, rep *Report, res *walkResult
 		if isTarget {
 			d.hygiene(rep, c.zone, dsSet, keys)
 			for _, t := range []dnswire.Type{dnswire.TypeSOA, dnswire.TypeNS} {
-				r, _, _, err := d.R.queryAny(ctx, c.servers, c.zone, t, true)
+				r, _, _, err := d.R.queryAny(ctx, c.servers, c.zone, t, true, authoritativeAnswer)
 				if err != nil {
 					return finishChain(rep, out, link, DNSSECIndeterminate, fmt.Sprintf("%s query failed: %v", t, err))
 				}
@@ -246,7 +246,7 @@ func finishChain(_ *Report, out *DNSSECReport, link ChainLink, status, detail st
 }
 
 func (d *Doctor) fetchKeys(ctx context.Context, c cut) []dnswire.RR {
-	resp, _, _, err := d.R.queryAny(ctx, c.servers, c.zone, dnswire.TypeDNSKEY, true)
+	resp, _, _, err := d.R.queryAny(ctx, c.servers, c.zone, dnswire.TypeDNSKEY, true, authoritativeAnswer)
 	if err != nil {
 		return nil
 	}
@@ -353,4 +353,15 @@ func verifyRRset(rrset []dnswire.RR, sigs []*dnswire.RRSIG, keys []*dnswire.DNSK
 		return nil, fmt.Errorf("no trusted key matches RRSIG key tag(s) %s", strings.Join(tags, ","))
 	}
 	return nil, errors.New(strings.Join(errs, "; "))
+}
+
+// authoritativeAnswer rejects the empty, non-authoritative responses of lame
+// servers, which would otherwise be read as "no DS" (insecure) or "no
+// DNSKEY" (bogus). Non-authoritative responses carrying data are accepted:
+// their signatures are validated anyway.
+func authoritativeAnswer(resp *dnswire.Msg) error {
+	if resp.Authoritative || len(resp.Answer) > 0 {
+		return nil
+	}
+	return ErrLameReferral
 }

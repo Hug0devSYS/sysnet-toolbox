@@ -206,12 +206,13 @@ type Behavior int
 
 // Server behaviors.
 const (
-	Normal      Behavior = iota
-	Refuse               // REFUSED for everything
-	NonAuth              // answers without the AA bit
-	Down                 // times out
-	ServFail             // SERVFAIL for everything
-	Unreachable          // "network is unreachable" dial error
+	Normal         Behavior = iota
+	Refuse                  // REFUSED for everything
+	NonAuth                 // answers without the AA bit
+	Down                    // times out
+	ServFail                // SERVFAIL for everything
+	Unreachable             // "network is unreachable" dial error
+	UpwardReferral          // lame: NOERROR, no AA, referral to the root
 )
 
 // Server is an authoritative server hosting zones.
@@ -292,6 +293,10 @@ func (s *Server) answer(q *dnswire.Msg) *dnswire.Msg {
 		return r
 	case ServFail:
 		r.Rcode = dnswire.RcodeServFail
+		return r
+	case UpwardReferral:
+		r.Authority = []dnswire.RR{{Name: ".", Type: dnswire.TypeNS, Class: 1, TTL: 518400,
+			Data: &dnswire.NS{Host: "a.root-servers.test."}}}
 		return r
 	}
 	qn := dnswire.CanonicalName(q.Question[0].Name)
