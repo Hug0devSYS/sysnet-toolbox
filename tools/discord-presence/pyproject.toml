@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sysnet-presence"
+version = "0.1.0"
+description = "Show the sysnet-toolbox tool you are running as Discord Rich Presence, with the toolbox logo."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Hug0devSYS" }]
+requires-python = ">=3.9"
+dependencies = []
+classifiers = [
+  "Environment :: Console",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: Utilities",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+sysnet-presence = "sysnet_presence.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+ignore = ["UP006", "UP007", "UP035", "UP045"]
