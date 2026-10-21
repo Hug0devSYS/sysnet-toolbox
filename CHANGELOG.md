@@ -40,6 +40,15 @@ and each tool is versioned independently following
     `--section`, `--ignore`, `--ignore-file`, `--ignore-order`, `--brief`,
     built-in volatile-line filter; directory mode for backup trees; stdin
     and `.gz` inputs; `diff(1)` exit codes.
+- **sysnet-presence 0.1.0** (Python, standard library only, requested by the
+  owner): Discord Rich Presence wrapper. `sysnet-presence -- <command>`
+  shows "Running <tool>" with the toolbox logo, elapsed time and a GitHub
+  button while the command runs, through the local Discord IPC socket
+  (Linux/macOS incl. Flatpak/Snap, Windows named pipes); `--hold`,
+  `--check`; arguments are never published; the command's exit code is
+  preserved and a missing Discord client never affects the command.
+- Repository logo (`assets/logo.svg`, 512 and 1024 px PNG), shown in the
+  README and used as the Discord art asset.
 - Roadmap: new ideas `netcfg-audit`, `dns-cutover-check` and `pki-health`.
 
 ### Fixed

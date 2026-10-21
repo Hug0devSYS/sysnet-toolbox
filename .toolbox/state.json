@@ -36,6 +36,15 @@
       ],
       "result": "success",
       "notes": "netcfg-diff 0.1.0 built with the Python standard library only: ruff check/format and 52 pytest tests pass on Python 3.13 and 3.9 (including a Junos candidate-config simulator applying generated set/delete/insert commands over 500 random reorderings); 2x44k-line IOS diff in ~1.2s. Module named masking.py because the repository .gitignore excludes secrets.*. dnsdoctor maintenance (0.1.1): lame servers skipped during iterative and DNSSEC walks, explicit TCP fallback errors, regression tests; gofmt/vet/test -race pass. Next run: new tool pmtud-probe (P2 #5) + maintenance of tlsaudit (oldest)."
+    },
+    {
+      "date": "2026-10-21",
+      "mode": "user-request",
+      "tools_touched": [
+        "sysnet-presence"
+      ],
+      "result": "success",
+      "notes": "Owner asked for Discord Rich Presence with the software logo. Added an original logo (assets/) and sysnet-presence 0.1.0 (stdlib Discord IPC client + command wrapper). ruff and 12 pytest tests pass on Python 3.13 and 3.9 against a fake IPC server; real Discord not testable from the cloud sandbox. Owner must create the Discord application, upload assets/logo-1024.png as art asset 'logo' and set SYSNET_DISCORD_CLIENT_ID."
     }
   ],
   "tools": {
@@ -62,6 +71,13 @@
       "version": "0.1.0",
       "created": "2026-10-21",
       "last_maintenance": "2026-10-21"
+    },
+    "sysnet-presence": {
+      "language": "Python",
+      "version": "0.1.0",
+      "created": "2026-10-21",
+      "last_maintenance": "2026-10-21",
+      "path": "tools/discord-presence"
     }
   }
 }

@@ -56,6 +56,7 @@ All P1 items of the initial backlog are done.
 | 2 | [`tlsaudit`](tools/tlsaudit/) | Go | 0.1.0 | 2026-10-14 |
 | 3 | [`nftlint`](tools/nftlint/) | Python | 0.1.0 | 2026-10-16 |
 | 4 | [`netcfg-diff`](tools/netcfg-diff/) | Python | 0.1.0 | 2026-10-21 |
+| – | [`sysnet-presence`](tools/discord-presence/) | Python | 0.1.0 | 2026-10-21 |
 
 `dnsdoctor` — end-to-end DNS diagnostics: iterative resolution from the root,
 lame delegations, parent/child NS consistency, SOA serial drift between
@@ -80,3 +81,6 @@ matters (ACLs, Junos terms and policy chains, FortiOS policy tables),
 single-valued commands as modifications, VLAN and list attributes as sets,
 secrets masked at parse time; text, JSON, summary and Junos
 set/delete/insert output; directory mode for backup trees.
+
+`sysnet-presence` — out-of-backlog addition requested by the owner: Discord
+Rich Presence wrapper showing the running toolbox tool with the logo.
