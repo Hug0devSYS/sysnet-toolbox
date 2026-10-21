@@ -10,9 +10,7 @@ Effort scale: **S** (< 1 day), **M** (1–3 days), **L** (> 3 days).
 
 ### P1
 
-| # | Tool | Language | Problem solved | Effort |
-|---|------|----------|----------------|--------|
-| 4 | `netcfg-diff` | Python | Semantic diff of Cisco IOS/NX-OS, Junos and FortiOS configurations (hierarchical comparison, ignores non-significant ordering). | L |
+All P1 items of the initial backlog are done.
 
 ### P2
 
@@ -45,6 +43,9 @@ Effort scale: **S** (< 1 day), **M** (1–3 days), **L** (> 3 days).
 | `l2-guard` | Python | P3 | Passive ARP/NDP monitoring on a segment: duplicate IP addresses, default-gateway MAC changes, unexpected IPv6 router advertisements (rogue RA), flip-flopping hosts; syslog/JSON alerts. Complements `rogue-dhcp`. | S |
 | `wg-audit` | Python | P2 | Audit WireGuard configurations and live state (`wg show all dump`, `wg-quick` / systemd-networkd files): overlapping or over-broad `AllowedIPs` between peers (silent traffic hijack), duplicate/reused keys, peers without recent handshake, missing `PersistentKeepalive` behind NAT, world-readable private keys, and whether the listen port is actually allowed by the firewall (reuses nftlint's exposure engine). | M |
 | `zonelint` | Go | P2 | Offline lint of RFC 1035 zone files before they are deployed (CI-friendly, complements the live checks of `dnsdoctor`): CNAME at apex or next to other data, out-of-zone and missing glue, dangling CNAME/MX/SRV targets inside the zone, A/AAAA vs PTR consistency across forward and reverse zones, SOA timer sanity (RFC 1912), TTL outliers, serial not incremented compared with the previous git revision. | M |
+| `netcfg-audit` | Python | P2 | Policy-as-code compliance of network configurations, reusing `netcfg-diff`'s parsers (IOS/NX-OS/IOS-XR/EOS, Junos, FortiOS): YAML rules such as "every access port has BPDU guard", "no `ip http server`", "SSH v2 only, telnet disabled on every VTY", "NTP/AAA/syslog servers equal the golden list", "every Junos filter ends with an explicit discard term", "no FortiOS policy with `srcaddr all` + `service ALL` + accept"; per-device and per-rule report, JSON and JUnit output for CI. | M |
+| `dns-cutover-check` | Go | P2 | Pre-flight check before moving a zone to a new DNS provider or primary: queries every name and type from a zone file or AXFR against the old and the new authoritative servers and compares RRsets, TTLs, SOA/NS, wildcard and CNAME behaviour, DNSSEC state (DS at the parent vs keys served by the new provider); reports what would break when the delegation is switched. Reuses dnsdoctor's wire format and transport. | M |
+| `pki-health` | Go | P3 | Health of an internal PKI's revocation infrastructure: fetch every CRL Distribution Point and AIA URL (HTTP and LDAP) found in a CA chain or a set of certificates, check reachability, CRL signature, `nextUpdate` margin, delta CRLs, OCSP responder signature and freshness; Nagios/Prometheus output. Complements `tlsaudit` (endpoints) and `cert-inventory` (stores). | M |
 | `bond-check` | Bash | P3 | Health check for Linux bonding/LACP and teaming without dependencies: parses `/proc/net/bonding/*` and `ip -d link` to detect inactive or flapping slaves, LACP partner MAC/key/aggregator mismatches (one switch port in a different LAG), speed/duplex mismatches between members, `miimon` disabled; Nagios output and exit codes. | S |
 
 ## Done
@@ -54,6 +55,7 @@ Effort scale: **S** (< 1 day), **M** (1–3 days), **L** (> 3 days).
 | 1 | [`dnsdoctor`](tools/dnsdoctor/) | Go | 0.1.0 | 2026-10-09 |
 | 2 | [`tlsaudit`](tools/tlsaudit/) | Go | 0.1.0 | 2026-10-14 |
 | 3 | [`nftlint`](tools/nftlint/) | Python | 0.1.0 | 2026-10-16 |
+| 4 | [`netcfg-diff`](tools/netcfg-diff/) | Python | 0.1.0 | 2026-10-21 |
 
 `dnsdoctor` — end-to-end DNS diagnostics: iterative resolution from the root,
 lame delegations, parent/child NS consistency, SOA serial drift between
@@ -70,3 +72,11 @@ and undefined chains, any-any accepts, permissive policies across all base
 chains of a hook, sensitive ports open to the world, missing IPv6 filtering;
 symbolic evaluation of the input path against `ss -tulnp` to report which
 sockets are open, restricted (exact source prefixes) or conditional.
+
+`netcfg-diff` — semantic diff of network configurations (IOS/IOS-XE, NX-OS,
+IOS-XR, EOS, Junos brace and set formats, FortiOS): hierarchical comparison,
+order ignored where the device ignores it and moves reported where it
+matters (ACLs, Junos terms and policy chains, FortiOS policy tables),
+single-valued commands as modifications, VLAN and list attributes as sets,
+secrets masked at parse time; text, JSON, summary and Junos
+set/delete/insert output; directory mode for backup trees.

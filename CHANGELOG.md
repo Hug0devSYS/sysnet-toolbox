@@ -7,6 +7,50 @@ and each tool is versioned independently following
 
 ## [Unreleased]
 
+## 2026-10-21
+
+### Added
+
+- **netcfg-diff 0.1.0** (Python, standard library only): semantic diff of
+  network device configurations.
+  - Parsers for indentation-based configurations (Cisco IOS / IOS-XE,
+    NX-OS, IOS-XR, Arista EOS; banners, `exit-*`/`end-*` terminators,
+    duplicate contexts merged), Junos (curly-brace and `display set`
+    formats parsed to the same token tree, `inactive:`/`deactivate`,
+    `[ ]` lists, comments) and FortiOS (`config`/`edit`/`set`/`unset`/
+    `append`/`unselect`, VDOMs, multi-line quoted values); vendor
+    auto-detection.
+  - Order-aware comparison: order ignored where the device ignores it;
+    checked for ACL entries (named, numbered, ASA-style), prefix/as-path/
+    community lists, policy-maps, route-policies, banners, Junos filter and
+    policy-statement terms, security policies, NAT rules, import/export
+    chains, `apply-groups`, `name-server`, FortiOS policy tables and router
+    list rules. Minimal moves computed with a longest increasing
+    subsequence; ACL/prefix-list sequence numbers are not significant.
+  - Single-valued commands, `no X` vs `X`, FortiOS attributes and Junos
+    leaves reported as modifications; `switchport trunk allowed vlan`
+    (`add`/`remove`/`except`/`all`/`none`) and FortiOS list attributes
+    compared as sets with added/removed members.
+  - Secrets (hashes, type-7, SNMP communities and v3 keys, TACACS/RADIUS,
+    IKE PSK, routing-protocol keys, Junos `$9$`, FortiOS `ENC`, private
+    keys) masked at parse time with per-run HMAC fingerprints;
+    `--secrets presence|show`.
+  - Text (annotated, coloured), `--json`, per-section `summary` and Junos
+    `set` (set/delete/insert/activate/deactivate commands) output;
+    `--section`, `--ignore`, `--ignore-file`, `--ignore-order`, `--brief`,
+    built-in volatile-line filter; directory mode for backup trees; stdin
+    and `.gz` inputs; `diff(1)` exit codes.
+- Roadmap: new ideas `netcfg-audit`, `dns-cutover-check` and `pki-health`.
+
+### Fixed
+
+- **dnsdoctor 0.1.1**: a lame server answering NOERROR without authority
+  and without a usable referral (e.g. an upward referral) no longer aborts
+  the iterative walk; the zone's other servers are tried. The DNSSEC walk
+  rejects such empty non-authoritative replies instead of reporting a false
+  insecure (no DS) or bogus (no DNSKEY) chain. A failed TCP fallback after a
+  truncated UDP response is now reported explicitly.
+
 ## 2026-10-16
 
 ### Added

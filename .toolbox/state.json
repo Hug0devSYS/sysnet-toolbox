@@ -26,14 +26,24 @@
       ],
       "result": "success",
       "notes": "Fewer than 3 tools before this run, so no maintenance pass. nftlint 0.1.0 built with the Python standard library only. ruff check/format and 84 pytest tests pass on Python 3.13 and 3.9; JSON fixtures generated with real nft 1.0.9 in an unprivileged network namespace, and --live verified against a kernel ruleset loaded in that namespace. Next run: 3 tools, so new tool (netcfg-diff) + maintenance of dnsdoctor (oldest)."
+    },
+    {
+      "date": "2026-10-21",
+      "mode": "new-tool+maintenance",
+      "tools_touched": [
+        "netcfg-diff",
+        "dnsdoctor"
+      ],
+      "result": "success",
+      "notes": "netcfg-diff 0.1.0 built with the Python standard library only: ruff check/format and 52 pytest tests pass on Python 3.13 and 3.9 (including a Junos candidate-config simulator applying generated set/delete/insert commands over 500 random reorderings); 2x44k-line IOS diff in ~1.2s. Module named masking.py because the repository .gitignore excludes secrets.*. dnsdoctor maintenance (0.1.1): lame servers skipped during iterative and DNSSEC walks, explicit TCP fallback errors, regression tests; gofmt/vet/test -race pass. Next run: new tool pmtud-probe (P2 #5) + maintenance of tlsaudit (oldest)."
     }
   ],
   "tools": {
     "dnsdoctor": {
       "language": "Go",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "created": "2026-10-09",
-      "last_maintenance": "2026-10-09"
+      "last_maintenance": "2026-10-21"
     },
     "tlsaudit": {
       "language": "Go",
@@ -46,6 +56,12 @@
       "version": "0.1.0",
       "created": "2026-10-16",
       "last_maintenance": "2026-10-16"
+    },
+    "netcfg-diff": {
+      "language": "Python",
+      "version": "0.1.0",
+      "created": "2026-10-21",
+      "last_maintenance": "2026-10-21"
     }
   }
 }
