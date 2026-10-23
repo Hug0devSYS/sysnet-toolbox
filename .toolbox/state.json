@@ -45,6 +45,16 @@
       ],
       "result": "success",
       "notes": "Owner asked for Discord Rich Presence with the software logo. Added an original logo (assets/) and sysnet-presence 0.1.0 (stdlib Discord IPC client + command wrapper). ruff and 12 pytest tests pass on Python 3.13 and 3.9 against a fake IPC server; real Discord not testable from the cloud sandbox. Owner must create the Discord application, upload assets/logo-1024.png as art asset 'logo' and set SYSNET_DISCORD_CLIENT_ID."
+    },
+    {
+      "date": "2026-10-23",
+      "mode": "new-tool+maintenance",
+      "tools_touched": [
+        "pmtud-probe",
+        "tlsaudit"
+      ],
+      "result": "success",
+      "notes": "pmtud-probe 0.1.0 built with the Go standard library only (module proxy still unreachable). gofmt/vet/test -race pass; 14-scenario netns lab (client/router/server, nftables black hole, MSS clamping, rejections) passes with both probe methods. The sandbox kernel has no IPv6, so IPv6 socket paths are covered by unit tests and run against ::1 only in CI. tlsaudit maintenance (0.1.1): duplicate Prometheus series with connect=, interrupted runs exit UNKNOWN without touching --prom-file, duplicate targets deduplicated, expiry colour follows thresholds; regression tests added. Next run: new tool lldp-mapper (P2 #6) + maintenance of nftlint (oldest)."
     }
   ],
   "tools": {
@@ -56,9 +66,9 @@
     },
     "tlsaudit": {
       "language": "Go",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "created": "2026-10-14",
-      "last_maintenance": "2026-10-14"
+      "last_maintenance": "2026-10-23"
     },
     "nftlint": {
       "language": "Python",
@@ -78,6 +88,12 @@
       "created": "2026-10-21",
       "last_maintenance": "2026-10-21",
       "path": "tools/discord-presence"
+    },
+    "pmtud-probe": {
+      "language": "Go",
+      "version": "0.1.0",
+      "created": "2026-10-23",
+      "last_maintenance": "2026-10-23"
     }
   }
 }

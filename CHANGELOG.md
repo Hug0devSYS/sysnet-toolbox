@@ -7,6 +7,48 @@ and each tool is versioned independently following
 
 ## [Unreleased]
 
+## 2026-10-23
+
+### Added
+
+- **pmtud-probe 0.1.0** (Go, standard library only): path MTU discovery and
+  PMTUD black-hole detection for IPv4 and IPv6, no privileges required.
+  - Probes on fresh connected sockets with `IP_PMTUDISC_PROBE` (DF set,
+    cached PMTU ignored) / `IPV6_DONTFRAG`; ICMP errors and the offending
+    router read from the `IP_RECVERR` / `IPV6_RECVERR` error queue. UDP
+    probes to a closed port or unprivileged ICMP ping sockets, `auto`
+    choosing ICMP when allowed and answered and falling back to UDP.
+  - Bisection between a control probe and the interface MTU that jumps to
+    an advertised MTU and confirms it (4 probes when PMTUD works); silent
+    drops only accepted after retries, a successful control probe and a
+    final attempt, so loss and ICMP rate limiting do not fake a black hole.
+  - Verdicts: `not-needed`, `working`, `black-hole`, `filtered`, `local`;
+    findings for ICMP without next-hop MTU, inconsistent or bogus MTU
+    values, IPv6 path MTU below 1280, cached/route PMTU, `--expect-mtu`.
+  - `--tcp PORT` MSS check run before the probes: the target's MSS as
+    received here (after any clamping), exact or lower bound, against the
+    discovered path; CRITICAL when unclamped on a black-holed path.
+  - Text and `--json` output, one report per target and family (dual-stack
+    by default), `-f` target lists, Nagios exit codes.
+  - Unit tests (error-queue and `tcp_info` decoding, loopback sockets,
+    simulated paths with loss/rate limiting/400 random topologies, CLI) and
+    `lab/netns-lab.sh`, a 14-scenario end-to-end lab on three network
+    namespaces with nftables (black hole, MSS clamping, rejections).
+
+### Fixed
+
+- **tlsaudit 0.1.1**: targets audited with `connect=` (several nodes behind
+  one name) produced duplicate Prometheus series, which makes
+  node_exporter's textfile collector reject the whole file; a `connect`
+  label is now added for those targets (other series are unchanged).
+- **tlsaudit 0.1.1**: an interrupted run (SIGINT/SIGTERM) reported every
+  unreached target as a CRITICAL connection error and overwrote the
+  `--prom-file`; it now exits UNKNOWN and leaves the metrics file untouched.
+- **tlsaudit 0.1.1**: repeated targets are audited once (note on stderr).
+- **tlsaudit 0.1.1**: the text report highlighted certificate expiry with a
+  hard-coded 30-day threshold; it now follows `--warn-days`/`--crit-days`
+  (new `expiry_status` field on the leaf certificate in JSON).
+
 ## 2026-10-21
 
 ### Added

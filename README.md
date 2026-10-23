@@ -24,9 +24,10 @@ Every tool in this repository follows the same rules:
 | Tool | Language | Description | Status |
 |------|----------|-------------|--------|
 | [dnsdoctor](tools/dnsdoctor/) | Go | End-to-end DNS zone diagnostics: iterative walk from the root, parent/child NS consistency, glue, lame delegations, SOA serial drift, DNSSEC chain of trust. | Beta (v0.1.1) |
-| [tlsaudit](tools/tlsaudit/) | Go | TLS fleet audit: expiry, incomplete/untrusted chains, SAN mismatch, SSLv3–TLS 1.3, full cipher suite enumeration, DHE strength, OCSP stapling, STARTTLS; text/JSON/summary output and Prometheus textfile metrics. | Beta (v0.1.0) |
+| [tlsaudit](tools/tlsaudit/) | Go | TLS fleet audit: expiry, incomplete/untrusted chains, SAN mismatch, SSLv3–TLS 1.3, full cipher suite enumeration, DHE strength, OCSP stapling, STARTTLS; text/JSON/summary output and Prometheus textfile metrics. | Beta (v0.1.1) |
 | [nftlint](tools/nftlint/) | Python | nftables / iptables-save static analysis: shadowed, redundant and unreachable rules, any-any accepts, permissive policies, missing IPv6 filtering; correlates `ss` listening sockets with the input path to show what is really reachable and from which sources. | Beta (v0.1.0) |
 | [netcfg-diff](tools/netcfg-diff/) | Python | Semantic diff of Cisco IOS/IOS-XE/NX-OS/IOS-XR/EOS, Junos (brace or set) and FortiOS configurations: hierarchical, order-aware (ACLs, firewall policies, policy chains), modifications instead of remove+add, secrets masked; text/JSON/summary and Junos set/delete/insert output, directory mode for backup trees. | Beta (v0.1.0) |
+| [pmtud-probe](tools/pmtud-probe/) | Go | Path MTU discovery for IPv4/IPv6 without privileges: PMTUD black-hole detection (silent drops vs ICMP fragmentation-needed / packet-too-big), broken ICMP, TCP MSS clamping check; text/JSON output, Nagios exit codes. | Beta (v0.1.0) |
 | [sysnet-presence](tools/discord-presence/) | Python | Optional Discord Rich Presence for the toolbox: `sysnet-presence -- <tool> ...` shows the running tool with the toolbox logo on your Discord profile (local IPC only, arguments never shown). | Beta (v0.1.0) |
 
 Planned tools and their priority are tracked in [ROADMAP.md](ROADMAP.md).
@@ -52,6 +53,9 @@ dnsdoctor example.com
 
 go install github.com/Hug0devSYS/sysnet-toolbox/tools/tlsaudit@latest
 tlsaudit --summary www.example.com smtp://mx.example.com
+
+go install github.com/Hug0devSYS/sysnet-toolbox/tools/pmtud-probe@latest
+pmtud-probe --tcp 443 vpn-peer.example.net
 
 # Python tools
 pipx install "git+https://github.com/Hug0devSYS/sysnet-toolbox.git#subdirectory=tools/nftlint"

@@ -16,7 +16,6 @@ All P1 items of the initial backlog are done.
 
 | # | Tool | Language | Problem solved | Effort |
 |---|------|----------|----------------|--------|
-| 5 | `pmtud-probe` | Go | Path MTU discovery and PMTUD black-hole detection, MSS clamping verification, IPv4/IPv6. | M |
 | 6 | `lldp-mapper` | Python | Topology discovery via SNMP LLDP-MIB/CDP into Mermaid/Graphviz/JSON; duplex and native VLAN mismatch detection. | M |
 | 7 | `subnet-planner` | Go | VLSM planning for IPv4/IPv6, overlap detection in a CSV/NetBox export, route aggregation. | M |
 | 8 | `syslog-triage` | Go | Ingest syslog/journald, cluster messages by pattern (Drain algorithm), detect spikes. | L |
@@ -47,6 +46,9 @@ All P1 items of the initial backlog are done.
 | `dns-cutover-check` | Go | P2 | Pre-flight check before moving a zone to a new DNS provider or primary: queries every name and type from a zone file or AXFR against the old and the new authoritative servers and compares RRsets, TTLs, SOA/NS, wildcard and CNAME behaviour, DNSSEC state (DS at the parent vs keys served by the new provider); reports what would break when the delegation is switched. Reuses dnsdoctor's wire format and transport. | M |
 | `pki-health` | Go | P3 | Health of an internal PKI's revocation infrastructure: fetch every CRL Distribution Point and AIA URL (HTTP and LDAP) found in a CA chain or a set of certificates, check reachability, CRL signature, `nextUpdate` margin, delta CRLs, OCSP responder signature and freshness; Nagios/Prometheus output. Complements `tlsaudit` (endpoints) and `cert-inventory` (stores). | M |
 | `bond-check` | Bash | P3 | Health check for Linux bonding/LACP and teaming without dependencies: parses `/proc/net/bonding/*` and `ip -d link` to detect inactive or flapping slaves, LACP partner MAC/key/aggregator mismatches (one switch port in a different LAG), speed/duplex mismatches between members, `miimon` disabled; Nagios output and exit codes. | S |
+| `flowtrace` | Go | P2 | ECMP-aware path tracing without privileges (Paris/Dublin-traceroute style, IP_RECVERR like `tracepath`): varies the 5-tuple to enumerate the parallel paths of a load-balanced network, reports per-path hops, loss and RTT, and locates which ECMP member or hop silently drops oversized packets (reuses `pmtud-probe`'s probe engine, whose black-hole verdict cannot tell which hop is at fault). | M |
+| `ipam-drift` | Python | P2 | Reconcile IPAM with reality: NetBox (API or CSV export) against live ARP/ND tables (SNMP `ipNetToPhysicalTable` or `ip neigh` dumps) and DNS PTR records; reports undocumented addresses in use, stale reservations never seen, MAC changes on documented hosts, PTR records that disagree with NetBox `dns_name`, and duplicate addresses across VRFs. Read-only towards NetBox and the network. | M |
+| `fhrp-watch` | Python | P3 | Passive VRRP v2/v3, HSRP v1/v2 and CARP advertisement monitoring on a segment: several masters for one group (split brain), unexpected master changes, priority/preempt/timer mismatches between peers, VRID/group collisions, plaintext or missing authentication; JSON/syslog alerts and Nagios exit codes. Needs CAP_NET_RAW (documented), listens only. | S |
 
 ## Done
 
@@ -57,6 +59,7 @@ All P1 items of the initial backlog are done.
 | 3 | [`nftlint`](tools/nftlint/) | Python | 0.1.0 | 2026-10-16 |
 | 4 | [`netcfg-diff`](tools/netcfg-diff/) | Python | 0.1.0 | 2026-10-21 |
 | – | [`sysnet-presence`](tools/discord-presence/) | Python | 0.1.0 | 2026-10-21 |
+| 5 | [`pmtud-probe`](tools/pmtud-probe/) | Go | 0.1.0 | 2026-10-23 |
 
 `dnsdoctor` — end-to-end DNS diagnostics: iterative resolution from the root,
 lame delegations, parent/child NS consistency, SOA serial drift between
@@ -81,6 +84,11 @@ matters (ACLs, Junos terms and policy chains, FortiOS policy tables),
 single-valued commands as modifications, VLAN and list attributes as sets,
 secrets masked at parse time; text, JSON, summary and Junos
 set/delete/insert output; directory mode for backup trees.
+
+`pmtud-probe` — path MTU discovery for IPv4/IPv6 without privileges
+(UDP or ICMP ping sockets, `IP_PMTUDISC_PROBE` + `IP_RECVERR`): working
+PMTUD vs black hole vs rejected oversize packets, broken ICMP contents,
+IPv6 below 1280, TCP MSS clamping check from the target's SYN-ACK.
 
 `sysnet-presence` — out-of-backlog addition requested by the owner: Discord
 Rich Presence wrapper showing the running toolbox tool with the logo.
