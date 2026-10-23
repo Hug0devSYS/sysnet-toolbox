@@ -65,7 +65,7 @@ go install github.com/Hug0devSYS/sysnet-toolbox/tools/tlsaudit@latest
 
 # or from a checkout
 cd tools/tlsaudit
-go build -trimpath -ldflags "-s -w -X github.com/Hug0devSYS/sysnet-toolbox/tools/tlsaudit/internal/cli.Version=0.1.0" -o tlsaudit .
+go build -trimpath -ldflags "-s -w -X github.com/Hug0devSYS/sysnet-toolbox/tools/tlsaudit/internal/cli.Version=0.1.1" -o tlsaudit .
 
 # static cross-compilation, e.g. for a monitoring host
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -o tlsaudit-linux-arm64 .
@@ -97,6 +97,10 @@ tlsaudit [flags] -f targets.txt
 ```
 
 Flags may appear before or after targets; `-json` and `--json` both work.
+Repeated targets (same endpoint, SNI, `connect=` and STARTTLS) are audited
+once, with a note on stderr. An interrupted run (SIGINT/SIGTERM) exits 3
+(UNKNOWN) and leaves an existing `--prom-file` untouched, so endpoints that
+were never reached are not published as failures.
 
 ### Target syntax
 
@@ -207,7 +211,10 @@ ERROR    legacy.example.net:443                   15     incomplete  TLS1.2     
 
 ### Prometheus metrics
 
-All per-endpoint metrics carry `target` (host:port) and `servername` labels.
+All per-endpoint metrics carry `target` (host:port) and `servername` labels,
+plus `connect` for targets audited with `connect=` (several nodes behind one
+name each get their own series; targets without `connect=` keep exactly the
+same series as before 0.1.1).
 
 | Metric | Meaning |
 |--------|---------|

@@ -19,7 +19,7 @@ import (
 )
 
 // Version is overridden at build time with -ldflags "-X .../cli.Version=x.y.z".
-var Version = "0.1.0"
+var Version = "0.1.1"
 
 // Exit codes (Nagios/Icinga compatible).
 const (
@@ -187,6 +187,7 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer, deps *Dep
 	if len(targets) == 0 {
 		return fail("no target given (see --help)")
 	}
+	targets = dedupe(targets, stderr)
 
 	opts := audit.Options{
 		Timeout:  cfg.timeout,
@@ -240,6 +241,7 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer, deps *Dep
 		}(i, t)
 	}
 	wg.Wait()
+	interrupted := ctx.Err() != nil
 
 	exit := ExitOK
 	for _, r := range reports {
@@ -271,6 +273,16 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer, deps *Dep
 			audit.WriteText(stdout, r, color)
 		}
 	}
+	if interrupted {
+		// Targets not reached before the signal show up as connection
+		// errors: never publish them as metrics, and do not claim CRITICAL.
+		fmt.Fprintf(stderr, "tlsaudit: interrupted (%v); results are incomplete", ctx.Err())
+		if cfg.promFile != "" {
+			fmt.Fprintf(stderr, ", %s left unchanged", cfg.promFile)
+		}
+		fmt.Fprintln(stderr)
+		return ExitUnknown
+	}
 	if cfg.promFile != "" {
 		now := time.Now()
 		if deps.Now != nil {
@@ -281,6 +293,24 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer, deps *Dep
 		}
 	}
 	return exit
+}
+
+// dedupe drops repeated targets (same endpoint, SNI, connect address and
+// STARTTLS protocol): auditing them twice wastes connections and would emit
+// duplicate Prometheus series.
+func dedupe(ts []target.Target, stderr io.Writer) []target.Target {
+	seen := make(map[[4]string]bool, len(ts))
+	out := ts[:0:0]
+	for _, t := range ts {
+		k := [4]string{t.Name(), t.ServerName, t.Connect, t.StartTLS}
+		if seen[k] {
+			fmt.Fprintf(stderr, "tlsaudit: ignoring duplicate target %q\n", t.Spec)
+			continue
+		}
+		seen[k] = true
+		out = append(out, t)
+	}
+	return out
 }
 
 func loadRoots(path string, only bool) (*x509.CertPool, error) {

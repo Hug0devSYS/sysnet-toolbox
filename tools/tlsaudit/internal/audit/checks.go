@@ -98,8 +98,9 @@ func weakSignature(a x509.SignatureAlgorithm) bool {
 }
 
 // checkExpiry adds expiry findings for c (what is "leaf certificate" or a
-// chain position description).
-func (a *Auditor) checkExpiry(rep *Report, c *x509.Certificate, what string, now time.Time) {
+// chain position description) and returns their severity ("" when the
+// certificate is valid beyond --warn-days).
+func (a *Auditor) checkExpiry(rep *Report, c *x509.Certificate, what string, now time.Time) Severity {
 	days := c.NotAfter.Sub(now).Hours() / 24
 	switch {
 	case now.Before(c.NotBefore):
@@ -110,7 +111,11 @@ func (a *Auditor) checkExpiry(rep *Report, c *x509.Certificate, what string, now
 		rep.add(CheckExpiry, SevError, "%s expires in %d day(s) on %s", what, int(days), c.NotAfter.UTC().Format("2006-01-02"))
 	case days < float64(a.Opts.WarnDays):
 		rep.add(CheckExpiry, SevWarning, "%s expires in %d day(s) on %s", what, int(days), c.NotAfter.UTC().Format("2006-01-02"))
+		return SevWarning
+	default:
+		return ""
 	}
+	return SevError
 }
 
 // checkCertificates validates the leaf and chain and returns the leaf's
@@ -126,7 +131,7 @@ func (a *Auditor) checkCertificates(ctx context.Context, rep *Report, t target.T
 	rep.Chain = chain
 
 	// Leaf properties.
-	a.checkExpiry(rep, leaf, "certificate", now)
+	rep.Certificate.ExpiryStatus = a.checkExpiry(rep, leaf, "certificate", now)
 	switch k := leaf.PublicKey.(type) {
 	case *rsa.PublicKey:
 		if k.N.BitLen() < 2048 {

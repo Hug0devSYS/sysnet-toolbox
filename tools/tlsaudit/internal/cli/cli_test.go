@@ -136,3 +136,77 @@ func TestUsageErrors(t *testing.T) {
 		t.Errorf("empty CA file: %d %s", code, stderr)
 	}
 }
+
+func TestPromSeriesUniquePerConnectAddress(t *testing.T) {
+	healthy, expiring, ca := fixture(t)
+	prom := filepath.Join(t.TempDir(), "tls.prom")
+	code, _, stderr := run(t, nil, "--no-ciphers", "--ca-file", ca, "--prom-file", prom,
+		"www.example.test connect="+healthy, "www.example.test connect="+expiring)
+	if code != ExitWarning {
+		t.Fatalf("exit %d %s", code, stderr)
+	}
+	data, err := os.ReadFile(prom)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]bool{}
+	for _, l := range strings.Split(string(data), "\n") {
+		if l == "" || strings.HasPrefix(l, "#") {
+			continue
+		}
+		series := l[:strings.LastIndexByte(l, ' ')]
+		if seen[series] {
+			t.Fatalf("duplicate series %q (node_exporter would reject the file)", series)
+		}
+		seen[series] = true
+	}
+	for _, addr := range []string{healthy, expiring} {
+		if !strings.Contains(string(data), `connect="`+addr+`"`) {
+			t.Fatalf("missing connect label for %s:\n%s", addr, data)
+		}
+	}
+}
+
+func TestDuplicateTargetsAuditedOnce(t *testing.T) {
+	healthy, _, ca := fixture(t)
+	spec := "www.example.test connect=" + healthy
+	code, out, stderr := run(t, nil, "--summary", "--no-ciphers", "--ca-file", ca, spec, spec, "  "+spec+"  ")
+	if code != ExitOK || strings.Count(strings.TrimSpace(out), "\n") != 1 || strings.Count(stderr, "ignoring duplicate target") != 2 {
+		t.Fatalf("exit %d\nout=%s\nstderr=%s", code, out, stderr)
+	}
+}
+
+func TestInterruptedRunIsUnknownAndKeepsPromFile(t *testing.T) {
+	healthy, _, ca := fixture(t)
+	prom := filepath.Join(t.TempDir(), "tls.prom")
+	if err := os.WriteFile(prom, []byte("previous\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	var out, errb bytes.Buffer
+	code := Run(ctx, []string{"--no-ciphers", "--ca-file", ca, "--prom-file", prom, "www.example.test connect=" + healthy}, &out, &errb, nil)
+	if code != ExitUnknown || !strings.Contains(errb.String(), "interrupted") {
+		t.Fatalf("exit %d stderr=%s", code, errb.String())
+	}
+	if data, _ := os.ReadFile(prom); string(data) != "previous\n" {
+		t.Fatalf("prom file overwritten after interruption: %q", data)
+	}
+}
+
+func TestExpiryColourFollowsThresholds(t *testing.T) {
+	_, expiring, ca := fixture(t) // expires in 12 days
+	spec := "www.example.test connect=" + expiring
+	_, out, _ := run(t, nil, "--no-ciphers", "--color", "always", "--ca-file", ca, spec)
+	if !strings.Contains(out, "\033[33m11 days left") && !strings.Contains(out, "\033[33m12 days left") {
+		t.Fatalf("default thresholds: expected yellow expiry\n%q", out)
+	}
+	_, out, _ = run(t, nil, "--no-ciphers", "--color", "always", "--crit-days", "14", "--warn-days", "20", "--ca-file", ca, spec)
+	if !strings.Contains(out, "\033[31m1") {
+		t.Fatalf("--crit-days 14: expected red expiry\n%q", out)
+	}
+	_, out, _ = run(t, nil, "--no-ciphers", "--color", "always", "--warn-days", "5", "--crit-days", "2", "--ca-file", ca, spec)
+	if strings.Contains(out, "\033[33m1") || strings.Contains(out, "\033[31m1") {
+		t.Fatalf("--warn-days 5: expiry must not be highlighted\n%q", out)
+	}
+}

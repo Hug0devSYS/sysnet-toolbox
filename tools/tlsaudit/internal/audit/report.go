@@ -66,6 +66,10 @@ type CertInfo struct {
 	OCSPServers        []string  `json:"ocsp_servers,omitempty"`
 	IssuingURLs        []string  `json:"issuing_certificate_urls,omitempty"`
 	MustStaple         bool      `json:"must_staple,omitempty"`
+	// ExpiryStatus is the severity of the expiry finding for this
+	// certificate against --warn-days/--crit-days ("" = fine). Only set on
+	// the leaf certificate.
+	ExpiryStatus Severity `json:"expiry_status,omitempty"`
 }
 
 // ChainResult is the outcome of chain building and validation.
@@ -134,6 +138,7 @@ type Report struct {
 	Target      string    `json:"target"`
 	Name        string    `json:"name"`
 	ServerName  string    `json:"server_name,omitempty"`
+	Connect     string    `json:"connect,omitempty"`
 	Address     string    `json:"address,omitempty"`
 	StartTLS    string    `json:"starttls,omitempty"`
 	CheckedAt   time.Time `json:"checked_at"`

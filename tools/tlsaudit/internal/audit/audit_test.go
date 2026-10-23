@@ -324,10 +324,10 @@ func TestPromOutput(t *testing.T) {
 	out := string(data)
 	for _, want := range []string{
 		"# TYPE tlsaudit_probe_success gauge",
-		`tlsaudit_probe_success{target="` + r.Name + `",servername="www.example.test"} 1`,
+		`tlsaudit_probe_success{target="` + r.Name + `",servername="www.example.test",connect="` + addr + `"} 1`,
 		`tlsaudit_probe_success{target="we\"ird:443",servername=""} 0`,
-		`tlsaudit_protocol_enabled{target="` + r.Name + `",servername="www.example.test",protocol="TLS1.3"} 1`,
-		`tlsaudit_chain_trusted{target="` + r.Name + `",servername="www.example.test"} 1`,
+		`tlsaudit_protocol_enabled{target="` + r.Name + `",servername="www.example.test",connect="` + addr + `",protocol="TLS1.3"} 1`,
+		`tlsaudit_chain_trusted{target="` + r.Name + `",servername="www.example.test",connect="` + addr + `"} 1`,
 		"tlsaudit_last_run_timestamp_seconds 1800000000",
 	} {
 		if !strings.Contains(out, want) {

@@ -65,7 +65,9 @@ func WriteText(w io.Writer, r *Report, color bool) {
 		switch {
 		case ci.DaysLeft < 0:
 			days = c("31;1", "EXPIRED")
-		case ci.DaysLeft < 30:
+		case ci.ExpiryStatus == SevError:
+			days = c("31", days)
+		case ci.ExpiryStatus == SevWarning:
 			days = c("33", days)
 		}
 		fmt.Fprintf(w, "  Validity    %s -> %s (%s)\n", ci.NotBefore.Format("2006-01-02"), ci.NotAfter.Format("2006-01-02"), days)

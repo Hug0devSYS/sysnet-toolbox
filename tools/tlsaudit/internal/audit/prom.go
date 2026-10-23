@@ -68,6 +68,12 @@ func WriteProm(w io.Writer, reps []*Report, now time.Time) error {
 	p := &promWriter{metrics: map[string]*metric{}}
 	for _, r := range reps {
 		base := [][2]string{{"target", r.Name}, {"servername", r.ServerName}}
+		if r.Connect != "" {
+			// Several nodes behind one name (connect=...) must not
+			// produce duplicate series, which make node_exporter reject
+			// the whole textfile. An absent label keeps existing series.
+			base = append(base, [2]string{"connect", r.Connect})
+		}
 		with := func(k, v string) [][2]string { return append(append([][2]string{}, base...), [2]string{k, v}) }
 
 		ok := r.Certificate != nil && r.Error == ""

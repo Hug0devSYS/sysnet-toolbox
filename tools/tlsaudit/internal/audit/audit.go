@@ -100,6 +100,7 @@ func (a *Auditor) Audit(ctx context.Context, t target.Target) *Report {
 		Target:     t.Spec,
 		Name:       t.Name(),
 		ServerName: t.ServerName,
+		Connect:    t.Connect,
 		StartTLS:   t.StartTLS,
 		CheckedAt:  start.UTC(),
 	}
