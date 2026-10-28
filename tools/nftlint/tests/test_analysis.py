@@ -174,3 +174,21 @@ def test_server_fixture_expected_findings(fixture_text):
 def test_clean_fixture_has_no_actionable_findings(fixture_text):
     found = run_static_checks(parse_nft_json(fixture_text("clean.json"), "c"), DEFAULT_SENSITIVE_PORTS)
     assert codes(found) == ["NFT000"]
+
+
+def test_sensitive_ports_are_protocol_aware():
+    text = (
+        "*filter\n:INPUT DROP [0:0]\n"
+        "-A INPUT -p udp -m multiport --dports 1000:2000,5353 -j ACCEPT\n"
+        "-A INPUT -p udp --dport 161 -j ACCEPT\n"
+        "-A INPUT -p tcp --dport 1433 -j ACCEPT\n"
+        "COMMIT\n"
+    )
+    rs = parse_iptables_save(text, "t", "ip")
+    found = by_code(run_static_checks(rs, DEFAULT_SENSITIVE_PORTS), "NFT007")
+    # UDP 1433/1521 are not mssql/oracle; UDP 161 is SNMP; TCP 1433 is mssql.
+    assert [(f.rule.index, f.extra["ports"]) for f in found] == [(2, [161]), (3, [1433])]
+    # A user-supplied list applies to every protocol, as written.
+    custom = {1433: "mssql"}
+    found = by_code(run_static_checks(rs, custom), "NFT007")
+    assert [f.rule.index for f in found] == [1, 3]

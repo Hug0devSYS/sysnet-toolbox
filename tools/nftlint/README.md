@@ -103,13 +103,13 @@ nftlint rules.json --sensitive-ports '22,3389,5432/postgres,6000-6010/x11'
 | `RULESET...` | nft JSON or iptables-save files, `-` for stdin. iptables files are IPv6 when the name contains `ip6` or the content has IPv6 addresses |
 | `-6, --ip6tables FILE` | ip6tables-save file (forces IPv6), repeatable |
 | `-F, --format` | `auto` (default), `nft-json`, `iptables-save` |
-| `--ss FILE` | `ss -tulnp` / `ss -tlnp` output, with or without header |
+| `--ss FILE` | `ss -tulnp` / `ss -tlnp` output, with or without header; numeric output (`-n`) is required and checked, scoped sockets such as `[fe80::1]%eth0:546` are supported |
 | `--live` | Read the running ruleset and sockets when no file is given |
 | `--timeout S` | Timeout of each `--live` command (default 15 s) |
 | `--json` | Machine-readable report (findings + exposure) |
 | `--min-severity` | Hide findings below a severity (also excluded from the exit code) |
 | `--ignore CODE` | Suppress codes, repeatable or comma-separated |
-| `--sensitive-ports` | Replace the built-in sensitive port list |
+| `--sensitive-ports` | Replace the built-in sensitive port list. The built-in list is protocol-aware (UDP only counts for rpcbind, SNMP, CLDAP, IPMI, NFS, RDP and memcached); a custom list applies to every protocol |
 | `-v, --verbose` | Show the deciding rules in the exposure table |
 
 ### Exit codes

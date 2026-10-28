@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nftlint"
-version = "0.1.0"
+version = "0.1.1"
 description = "Static analysis of nftables / iptables-save rulesets: shadowed and unreachable rules, permissive policies, and exposure of listening sockets."
 readme = "README.md"
 license = { text = "MIT" }

@@ -196,3 +196,12 @@ def test_stale_openings_need_matching_protocol(fixture_text):
     found = exposure_findings(rs, analyse_exposure(rs, listeners), listeners, DEFAULT_SENSITIVE_PORTS)
     stale = [f for f in found if f.code == "NFT009"]
     assert [f.rule.index for f in stale] == [1]
+
+
+def test_udp_socket_on_tcp_only_sensitive_port_is_not_high():
+    doc = nft_doc(chain("in", hook="input", policy="accept"))
+    rs = parse_nft_json(doc, "t")
+    listeners = parse_ss("udp UNCONN 0 0 0.0.0.0:3306 0.0.0.0:*\nudp UNCONN 0 0 0.0.0.0:161 0.0.0.0:*\n")
+    found = exposure_findings(rs, analyse_exposure(rs, listeners), listeners, DEFAULT_SENSITIVE_PORTS)
+    high = [f.extra["listener"]["port"] for f in found if f.code == "NFT008"]
+    assert high == [161]

@@ -162,3 +162,24 @@ class TestSs:
     def test_garbage(self):
         with pytest.raises(SsParseError):
             parse_ss("tcp LISTEN\n")
+
+    def test_scoped_ipv6_sockets(self):
+        # iproute2 prints the scope after the bracket: [fe80::1]%enp0s3:546 (DHCPv6 clients)
+        text = (
+            "udp UNCONN 0 0 [fe80::a00:27ff:fe4e:66a1]%enp0s3:546 [::]:* "
+            'users:(("NetworkManager",pid=612,fd=27))\n'
+            "udp UNCONN 0 0 [fe80::1%eth1]:547 [::]:*\n"
+            "tcp LISTEN 0 128 [::1]%lo:631 [::]:*\n"
+        )
+        a, b, c = parse_ss(text)
+        assert (a.port, a.scope, a.address, a.families) == (546, "enp0s3", "fe80::a00:27ff:fe4e:66a1", [1])
+        assert a.raw_address == "[fe80::a00:27ff:fe4e:66a1]%enp0s3" and a.process == "NetworkManager"
+        assert (b.port, b.scope, b.address) == (547, "eth1", "fe80::1")
+        assert c.loopback and c.port == 631
+
+    def test_symbolic_output_is_rejected_with_a_hint(self):
+        # Without -n, every socket would be silently skipped and the exposure table would look clean.
+        with pytest.raises(SsParseError, match="run ss with -n"):
+            parse_ss('tcp LISTEN 0 128 0.0.0.0:ssh 0.0.0.0:* users:(("sshd",pid=1,fd=3))\n')
+        with pytest.raises(SsParseError, match="run ss with -n"):
+            parse_ss("tcp LISTEN 0 128 localhost:631 0.0.0.0:*\n")

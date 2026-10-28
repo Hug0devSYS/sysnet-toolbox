@@ -42,7 +42,7 @@ from .model import (
 )
 from .nftjson import SYN_TOKENS
 from .ss import Listener
-from .values import PROTOCOLS, format_addresses, to_set
+from .values import PROTOCOLS, format_addresses, sensitive_for, to_set
 
 YES, NO, MAYBE = "yes", "no", "maybe"
 MAX_DEPTH = 32
@@ -399,7 +399,7 @@ def exposure_findings(
                     why = "an explicit rule accepts it from any source"
                 if wide:
                     why += f" (allowed sources: {r.sources()})"
-                if lst.port in sensitive:
+                if lst.port in sensitive_for(sensitive, lst.proto == "udp"):
                     findings.append(
                         Finding(
                             "NFT008",

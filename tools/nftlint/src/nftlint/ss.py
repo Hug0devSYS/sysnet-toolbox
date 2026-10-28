@@ -59,14 +59,19 @@ class SsParseError(Exception):
 
 
 def _split_hostport(text: str):
+    """Split ``addr:port``, ``[v6]:port``, ``[v6]%scope:port`` (iproute2) or ``[v6%scope]:port``."""
+    scope = None
     if text.startswith("["):
-        host, _, port = text[1:].partition("]:")
+        host, _, rest = text[1:].partition("]")
+        if rest.startswith("%"):
+            scope, _, port = rest[1:].rpartition(":")
+        else:
+            port = rest[1:] if rest.startswith(":") else ""
     else:
         host, _, port = text.rpartition(":")
-    scope = None
     if "%" in host:
         host, scope = host.split("%", 1)
-    return host, port, scope
+    return host, port, scope or None
 
 
 def parse_ss(text: str, source: str = "ss") -> List[Listener]:
@@ -94,6 +99,11 @@ def parse_ss(text: str, source: str = "ss") -> List[Listener]:
             proto = "tcp"
         host, port_s, scope = _split_hostport(cols[3])
         if not port_s.isdigit():
+            if re.match(r"^[A-Za-z][\w.-]*$", port_s):
+                raise SsParseError(
+                    f"{source}:{lineno}: service name {port_s!r} instead of a port number: "
+                    "run ss with -n (`ss -tulnp`)"
+                )
             continue
         address: Optional[str]
         if host in ("*", "0.0.0.0", "::", ""):
@@ -108,7 +118,10 @@ def parse_ss(text: str, source: str = "ss") -> List[Listener]:
             try:
                 ip = ipaddress.ip_address(host)
             except ValueError as exc:
-                raise SsParseError(f"{source}:{lineno}: invalid address {host!r}") from exc
+                raise SsParseError(
+                    f"{source}:{lineno}: invalid address {host!r} "
+                    "(host names are not resolved: run ss with -n)"
+                ) from exc
             address = str(ip)
             if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
                 families = [IPV4]
@@ -125,7 +138,7 @@ def parse_ss(text: str, source: str = "ss") -> List[Listener]:
                 process=m.group(1) if m else "",
                 pid=int(m.group(2)) if m else None,
                 scope=scope,
-                raw_address=cols[3].rsplit(":", 1)[0],
+                raw_address=cols[3][: len(cols[3]) - len(port_s) - 1],
             )
         )
     return out

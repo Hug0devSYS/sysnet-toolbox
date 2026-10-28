@@ -25,7 +25,9 @@ from .model import (
     Ruleset,
     values,
 )
-from .values import format_ports
+from .values import format_ports, sensitive_for
+
+IPPROTO_UDP = 17
 
 FILTER_HOOKS = ("input", "forward")
 MAX_DEPTH = 32
@@ -256,10 +258,12 @@ def check_permissive_rules(chain: Chain, sensitive: Dict[int, str]) -> List[Find
         if chain.hook != "input" or not m.constrained(DPORT) or not _source_is_wide(rule):
             continue
         dports = m.get(DPORT)
-        hits = sorted(p for p in sensitive if dports.contains(p))
+        udp_only = proto is not None and proto.issubset(values(L4PROTO, IPPROTO_UDP))
+        relevant = sensitive_for(sensitive, udp_only)
+        hits = sorted(p for p in relevant if dports.contains(p))
         if not hits or dports.size() > 4096:
             continue
-        names = ", ".join(f"{p}/{sensitive[p]}" for p in hits[:8])
+        names = ", ".join(f"{p}/{relevant[p]}" for p in hits[:8])
         findings.append(
             Finding(
                 "NFT007",

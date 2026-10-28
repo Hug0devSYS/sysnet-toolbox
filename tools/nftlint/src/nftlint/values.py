@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ipaddress
 import socket
-from typing import List, Union
+from typing import Dict, List, Union
 
 from .intervals import IntervalSet
 from .model import BOUNDS, CT_STATES, CTSTATE, DPORT, FAMILY_OF_DIM, L4PROTO, NFPROTO, SPORT
@@ -76,6 +76,22 @@ DEFAULT_SENSITIVE_PORTS = {
     11211: "memcached",
     27017: "mongodb",
 }
+
+
+# Services of the built-in list that are also (or only) reached over UDP. The others
+# are TCP-only, so an accepted UDP port 1433 is not "mssql open to the world".
+DEFAULT_UDP_SENSITIVE = frozenset({111, 161, 389, 623, 2049, 3389, 11211})
+
+
+def sensitive_for(sensitive: Dict[int, str], udp_only: bool) -> Dict[int, str]:
+    """The sensitive ports relevant to a UDP-only match or socket.
+
+    Only the built-in list is narrowed; a list given with --sensitive-ports applies
+    to every protocol, as written by the user.
+    """
+    if not udp_only or sensitive is not DEFAULT_SENSITIVE_PORTS:
+        return sensitive
+    return {p: n for p, n in sensitive.items() if p in DEFAULT_UDP_SENSITIVE}
 
 
 class Unsupported(ValueError):
