@@ -16,7 +16,6 @@ All P1 items of the initial backlog are done.
 
 | # | Tool | Language | Problem solved | Effort |
 |---|------|----------|----------------|--------|
-| 6 | `lldp-mapper` | Python | Topology discovery via SNMP LLDP-MIB/CDP into Mermaid/Graphviz/JSON; duplex and native VLAN mismatch detection. | M |
 | 7 | `subnet-planner` | Go | VLSM planning for IPv4/IPv6, overlap detection in a CSV/NetBox export, route aggregation. | M |
 | 8 | `syslog-triage` | Go | Ingest syslog/journald, cluster messages by pattern (Drain algorithm), detect spikes. | L |
 | 9 | `cert-inventory` | PowerShell | Inventory certificate stores across a Windows fleet over WinRM: expirations, ADCS templates, exportable private keys. | M |
@@ -49,6 +48,9 @@ All P1 items of the initial backlog are done.
 | `flowtrace` | Go | P2 | ECMP-aware path tracing without privileges (Paris/Dublin-traceroute style, IP_RECVERR like `tracepath`): varies the 5-tuple to enumerate the parallel paths of a load-balanced network, reports per-path hops, loss and RTT, and locates which ECMP member or hop silently drops oversized packets (reuses `pmtud-probe`'s probe engine, whose black-hole verdict cannot tell which hop is at fault). | M |
 | `ipam-drift` | Python | P2 | Reconcile IPAM with reality: NetBox (API or CSV export) against live ARP/ND tables (SNMP `ipNetToPhysicalTable` or `ip neigh` dumps) and DNS PTR records; reports undocumented addresses in use, stale reservations never seen, MAC changes on documented hosts, PTR records that disagree with NetBox `dns_name`, and duplicate addresses across VRFs. Read-only towards NetBox and the network. | M |
 | `fhrp-watch` | Python | P3 | Passive VRRP v2/v3, HSRP v1/v2 and CARP advertisement monitoring on a segment: several masters for one group (split brain), unexpected master changes, priority/preempt/timer mismatches between peers, VRID/group collisions, plaintext or missing authentication; JSON/syslog alerts and Nagios exit codes. Needs CAP_NET_RAW (documented), listens only. | S |
+| `stp-audit` | Python | P2 | Spanning-tree health over SNMP (BRIDGE-MIB, RSTP-MIB, IEEE8021-MSTP-MIB, Cisco PVST via `community@vlan` contexts): every switch agrees on the same root bridge and it is the intended one (priority plan), unexpected root or secondary root, topology-change counters and recent TCs (flapping edge ports), blocked/alternate ports drawn on the `lldp-mapper` graph, edge ports without BPDU guard where the MIB exposes it, mismatched STP modes between neighbours. Reuses lldp-mapper's SNMP client and topology. | M |
+| `ipsec-audit` | Python | P2 | Audit strongSwan / libreswan site-to-site VPNs from `swanctl --list-sas --list-conns` (or `ipsec status` / `ipsec trafficstatus`) and their config files: configured tunnels that are not up, CHILD_SAs missing for configured traffic selectors, weak proposals (3DES, SHA-1, MD5, MODP-1024/1536, IKEv1 aggressive mode), PFS disabled, lifetime/rekey mismatches, PSKs shorter than 20 characters or shared between peers, certificates close to expiry; read-only, JSON and Nagios output. Complements `wg-audit` for IPsec. | M |
+| `dhcp-pool-watch` | Python | P3 | DHCP pool utilisation and exhaustion forecast for ISC Kea (control-agent `stat-lease4-get`/`statistic-get-all`), ISC dhcpd `dhcpd.leases` and dnsmasq lease files: per-subnet usage, regression-based days-to-exhaustion, static reservations inside dynamic ranges, duplicate MAC/hostname reservations, abandoned/declined leases (address conflicts); Prometheus textfile and Nagios output. | S |
 
 ## Done
 
@@ -60,6 +62,7 @@ All P1 items of the initial backlog are done.
 | 4 | [`netcfg-diff`](tools/netcfg-diff/) | Python | 0.1.0 | 2026-10-21 |
 | – | [`sysnet-presence`](tools/discord-presence/) | Python | 0.1.0 | 2026-10-21 |
 | 5 | [`pmtud-probe`](tools/pmtud-probe/) | Go | 0.1.0 | 2026-10-23 |
+| 6 | [`lldp-mapper`](tools/lldp-mapper/) | Python | 0.1.0 | 2026-10-28 |
 
 `dnsdoctor` — end-to-end DNS diagnostics: iterative resolution from the root,
 lame delegations, parent/child NS consistency, SOA serial drift between
@@ -89,6 +92,14 @@ set/delete/insert output; directory mode for backup trees.
 (UDP or ICMP ping sockets, `IP_PMTUDISC_PROBE` + `IP_RECVERR`): working
 PMTUD vs black hole vs rejected oversize packets, broken ICMP contents,
 IPv6 below 1280, TCP MSS clamping check from the target's SYN-ACK.
+
+`lldp-mapper` — layer-2 topology discovery over SNMP (LLDP-MIB with the
+802.1/802.3 extensions, CISCO-CDP-MIB, IF-MIB, EtherLike-MIB, Q-BRIDGE and
+Cisco VLAN MIBs): neighbour identity by chassis ID, LLDP and CDP sightings
+merged per cable, duplex/speed/auto-negotiation/native VLAN mismatches with
+the source of every fact, one-way adjacencies, miscabling; scoped crawl;
+text, JSON, Mermaid and DOT output; built-in SNMPv1/v2c client, SNMPv3 via
+net-snmp; offline mode on saved walks.
 
 `sysnet-presence` — out-of-backlog addition requested by the owner: Discord
 Rich Presence wrapper showing the running toolbox tool with the logo.

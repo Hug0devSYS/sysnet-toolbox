@@ -7,6 +7,50 @@ and each tool is versioned independently following
 
 ## [Unreleased]
 
+## 2026-10-28
+
+### Added
+
+- **lldp-mapper 0.1.0** (Python, standard library only): layer-2 topology
+  discovery over SNMP with link consistency checks.
+  - Built-in read-only SNMPv1/v2c client (BER codec, GetBulk/GetNext walks,
+    retries, automatic `tooBig` back-off, per-device time budget,
+    non-increasing OID detection), cross-validated against net-snmp;
+    SNMPv3 (USM auth/priv) through `snmpbulkwalk`, credentials passed in a
+    private temporary `snmp.conf`, never on the command line.
+  - Reads LLDP-MIB (local, remote, management addresses), LLDP-EXT-DOT1
+    (PVID), LLDP-EXT-DOT3 (auto-negotiation, MAU type), CISCO-CDP-MIB,
+    IF-MIB, EtherLike-MIB duplex, Q-BRIDGE `dot1qPvid`, CISCO-VTP-MIB trunk
+    native VLAN and CISCO-VLAN-MEMBERSHIP-MIB access VLAN.
+  - LLDP local port numbers mapped to ifIndex (port ID, description, Junos
+    convention, then assumed equality); neighbours matched by chassis ID,
+    name (NX-OS serial suffix, domain) or management address, never merging
+    different chassis IDs; LLDP and CDP sightings of one cable merged.
+  - Findings: `duplex-mismatch` (critical), `speed-mismatch`,
+    `autoneg-mismatch`, `native-vlan-mismatch`, `one-way-adjacency`,
+    `neighbor-mismatch`, `shared-port`, `poll-failed`, `partial-data`,
+    `no-discovery-data`, `duplicate-device`; every link fact carries its
+    source (own MIB vs neighbour advertisement).
+  - Scoped crawl through advertised management addresses (`--crawl` requires
+    `--scope`, depth/device/capability limits), parallel polls.
+  - Text, JSON, Mermaid and Graphviz DOT output (`--graph` files), Nagios
+    exit codes, `--save-walks` / `--from-walks` offline mode accepting
+    `snmpbulkwalk -On` output.
+  - 108 tests: fake UDP agent, typed net-snmp walk fixture, reference lab.
+
+### Fixed
+
+- **nftlint 0.1.1**: sockets printed by `ss` as `[fe80::1]%eth0:546`
+  (DHCPv6 clients and other scoped IPv6 sockets) were silently dropped from
+  the exposure analysis.
+- **nftlint 0.1.1**: `ss` output produced without `-n` (service or host
+  names) was silently skipped, so the exposure table looked clean; it is now
+  rejected with a hint.
+- **nftlint 0.1.1**: NFT007/NFT008 reported TCP-only services (mssql,
+  oracle, mysql, ...) for accepted UDP ports; the built-in sensitive port
+  list is now protocol-aware (custom `--sensitive-ports` lists still apply
+  to every protocol).
+
 ## 2026-10-23
 
 ### Added

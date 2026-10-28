@@ -55,6 +55,16 @@
       ],
       "result": "success",
       "notes": "pmtud-probe 0.1.0 built with the Go standard library only (module proxy still unreachable). gofmt/vet/test -race pass; 14-scenario netns lab (client/router/server, nftables black hole, MSS clamping, rejections) passes with both probe methods. The sandbox kernel has no IPv6, so IPv6 socket paths are covered by unit tests and run against ::1 only in CI. tlsaudit maintenance (0.1.1): duplicate Prometheus series with connect=, interrupted runs exit UNKNOWN without touching --prom-file, duplicate targets deduplicated, expiry colour follows thresholds; regression tests added. Next run: new tool lldp-mapper (P2 #6) + maintenance of nftlint (oldest)."
+    },
+    {
+      "date": "2026-10-28",
+      "mode": "new-tool+maintenance",
+      "tools_touched": [
+        "lldp-mapper",
+        "nftlint"
+      ],
+      "result": "success",
+      "notes": "lldp-mapper 0.1.0 built with the Python standard library only: ruff check/format and 108 pytest tests pass on Python 3.13 and 3.9. Native SNMPv2c client cross-validated against a local net-snmp snmpd (identical varbinds to snmpbulkwalk on ~600 OIDs, default and -Ox output parsers); SNMPv3 authPriv (SHA-256/AES, passphrases with spaces and quotes) verified through the net-snmp back-end; Mermaid and DOT outputs rendered with mmdc and graphviz. No LLDP-capable agent in the sandbox: LLDP/CDP logic covered by a synthetic reference lab and a typed Catalyst walk fixture. nftlint maintenance (0.1.1): scoped IPv6 ss sockets, symbolic ss output rejected, protocol-aware sensitive ports; 88 tests pass. Next run: new tool subnet-planner (P2 #7) + maintenance of netcfg-diff (oldest, 2026-10-21; sysnet-presence ties)."
     }
   ],
   "tools": {
@@ -72,9 +82,9 @@
     },
     "nftlint": {
       "language": "Python",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "created": "2026-10-16",
-      "last_maintenance": "2026-10-16"
+      "last_maintenance": "2026-10-28"
     },
     "netcfg-diff": {
       "language": "Python",
@@ -94,6 +104,12 @@
       "version": "0.1.0",
       "created": "2026-10-23",
       "last_maintenance": "2026-10-23"
+    },
+    "lldp-mapper": {
+      "language": "Python",
+      "version": "0.1.0",
+      "created": "2026-10-28",
+      "last_maintenance": "2026-10-28"
     }
   }
 }
