@@ -45,7 +45,45 @@ def test_errors(capsys, tmp_path):
     code, _, err = run(capsys, "-", "-")
     assert code == 2
     code, _, err = run(capsys, str(tmp_path), fixture_path("ios_old.cfg"))
-    assert code == 2 and "both directories" in err
+    assert code == 2 and "no such file to compare" in err
+
+
+def test_corrupt_gzip(capsys, tmp_path):
+    data = bytearray(gzip.compress(b"hostname r1\n" * 2000))
+    data[20] ^= 0xFF  # damage the deflate stream, not the header
+    bad = tmp_path / "bad.cfg.gz"
+    bad.write_bytes(bytes(data))
+    code, _, err = run(capsys, str(bad), fixture_path("ios_old.cfg"))
+    assert code == 2 and "bad.cfg.gz" in err
+    trunc = tmp_path / "trunc.cfg.gz"
+    trunc.write_bytes(gzip.compress(b"hostname r1\n")[:15])
+    code, _, err = run(capsys, str(trunc), fixture_path("ios_old.cfg"))
+    assert code == 2 and "trunc.cfg.gz" in err
+
+
+def test_legacy_encodings(capsys, tmp_path):
+    utf8 = tmp_path / "utf8.cfg"
+    utf8.write_bytes("\ufeffhostname r1\ninterface Gi1\n description réseau étage\n".encode("utf-8"))
+    legacy = tmp_path / "legacy.cfg"
+    legacy.write_bytes("hostname r1\ninterface Gi1\n description réseau étage\n".encode("cp1252"))
+    code, out, _ = run(capsys, "--color", "never", str(legacy), str(utf8))
+    assert code == 0 and "No semantic differences." in out, out
+    raw = tmp_path / "raw.cfg"
+    raw.write_bytes(b"hostname r1\ninterface Gi1\n description \x81\xe9\n")  # 0x81 undefined in cp1252
+    code, out, _ = run(capsys, "--color", "never", str(raw), str(utf8))
+    assert code == 1 and "\x81é" in out
+
+
+def test_file_against_directory(capsys, tmp_path):
+    d = tmp_path / "backups"
+    d.mkdir()
+    shutil.copy(fixture_path("ios_old.cfg"), d / "ios_new.cfg")
+    code, out, _ = run(capsys, "--color", "never", fixture_path("ios_new.cfg"), str(d))
+    assert code == 1 and f"--- {fixture_path('ios_new.cfg')}" in out and str(d / "ios_new.cfg") in out
+    code, out, _ = run(capsys, "--color", "never", str(d), fixture_path("ios_new.cfg"))
+    assert code == 1 and out.startswith(f"--- {d / 'ios_new.cfg'}")
+    code, _, err = run(capsys, "-", str(d))
+    assert code == 2 and "stdin" in err
 
 
 def test_json_output(capsys):
@@ -197,4 +235,4 @@ def test_version(capsys):
     with pytest.raises(SystemExit) as exc:
         main(["--version"])
     assert exc.value.code == 0
-    assert "netcfg-diff 0.1.0" in capsys.readouterr().out
+    assert "netcfg-diff 0.1.1" in capsys.readouterr().out

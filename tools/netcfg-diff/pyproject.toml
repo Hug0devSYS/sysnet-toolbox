@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netcfg-diff"
-version = "0.1.0"
+version = "0.1.1"
 description = "Semantic diff of network device configurations: Cisco IOS/IOS-XE/NX-OS/IOS-XR/EOS, Junos and FortiOS."
 readme = "README.md"
 license = { text = "MIT" }

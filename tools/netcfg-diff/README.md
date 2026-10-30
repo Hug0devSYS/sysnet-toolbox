@@ -41,7 +41,8 @@ python -m netcfg_diff --help    # without installing: PYTHONPATH=src
 ```
 netcfg-diff [options] LEFT RIGHT
 
-  LEFT, RIGHT            files ('-' = stdin for one side, .gz accepted) or two directories
+  LEFT, RIGHT            files ('-' = stdin for one side, .gz accepted), two directories,
+                         or FILE DIR / DIR FILE (compares with DIR/basename(FILE), like diff(1))
   --vendor V             auto (default), ios, nxos, iosxr, eos, junos, fortios
   --format F             text (default), json, summary, set (Junos commands)
   --json                 same as --format json
@@ -267,7 +268,9 @@ continues (exit code 2 at the end).
   `ENC` values may be re-salted between two exports of an unchanged
   configuration on some releases; use `--secrets presence` if that creates
   noise.
-- Inputs above 64 MiB are refused.
+- Inputs above 64 MiB are refused. Files are read as UTF-8 (a BOM is
+  skipped); files that are not valid UTF-8 are read as Windows-1252, so a
+  legacy-encoded backup compares equal to its UTF-8 re-export.
 
 ## Security
 

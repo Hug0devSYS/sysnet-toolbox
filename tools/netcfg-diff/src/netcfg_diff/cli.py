@@ -8,6 +8,7 @@ import json
 import os
 import re
 import sys
+import zlib
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from . import __version__
@@ -38,6 +39,7 @@ examples:
   netcfg-diff --json fw-a.conf fw-b.conf | jq '.changes[] | select(.op=="move")'
   netcfg-diff --format set junos-before.conf junos-after.set > change.set
   netcfg-diff backups/2026-10-20/ backups/2026-10-21/ --format summary
+  netcfg-diff r1.cfg backups/2026-10-20/          (compares with backups/2026-10-20/r1.cfg)
   git difftool -y -x 'netcfg-diff' HEAD~1 -- r1.cfg
 
 exit codes: 0 no semantic difference, 1 differences found, 2 error
@@ -57,15 +59,34 @@ def read_input(path: str) -> str:
             opener = gzip.open if path.endswith(".gz") else open
             with opener(path, "rb") as fh:  # type: ignore[operator]
                 data = fh.read(MAX_BYTES + 1)
-    except (OSError, EOFError) as exc:
-        raise InputError(
-            f"{path}: {exc.strerror if isinstance(exc, OSError) and exc.strerror else exc}"
-        ) from exc
+    except (OSError, EOFError, zlib.error) as exc:
+        detail = exc.strerror if isinstance(exc, OSError) and exc.strerror else exc
+        if isinstance(exc, zlib.error):
+            detail = f"corrupt gzip data ({exc})"
+        raise InputError(f"{path}: {detail}") from exc
     if len(data) > MAX_BYTES:
         raise InputError(f"{path}: larger than {MAX_BYTES // (1024 * 1024)} MiB")
     if b"\x00" in data[:8192]:
         raise InputError(f"{path}: looks like a binary file")
-    return data.decode("utf-8", errors="replace")
+    return decode(data)
+
+
+def decode(data: bytes) -> str:
+    """Decode a configuration: UTF-8 (with or without BOM), else Windows-1252.
+
+    Older devices and TFTP backups often store descriptions and banners in a
+    legacy 8-bit encoding; decoding them as UTF-8 with replacement characters
+    would make every accented line look modified once the device is
+    upgraded. Bytes undefined in Windows-1252 fall back to Latin-1.
+    """
+    try:
+        return data.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        pass
+    try:
+        return data.decode("cp1252")
+    except UnicodeDecodeError:
+        return data.decode("latin-1")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -75,7 +96,9 @@ def build_parser() -> argparse.ArgumentParser:
         epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("left", help="old configuration file or directory ('-' for stdin)")
+    p.add_argument(
+        "left", help="old configuration file or directory ('-' for stdin; FILE DIR compares with DIR/FILE)"
+    )
     p.add_argument("right", help="new configuration file or directory ('-' for stdin)")
     p.add_argument(
         "--vendor",
@@ -247,10 +270,20 @@ def _main(argv: Optional[Sequence[str]] = None) -> int:
         masker = Masker(args.secrets)
         color = use_color(args.color, out)
         ldir, rdir = os.path.isdir(args.left), os.path.isdir(args.right)
-        if ldir != rdir:
-            raise InputError("both arguments must be files, or both directories")
-        if ldir:
+        if ldir and rdir:
             return run_dirs(args, ignore, sections, masker, color)
+        if ldir != rdir:
+            # diff(1) convention: "FILE DIR" compares FILE with DIR/basename(FILE).
+            file_arg = args.right if ldir else args.left
+            if file_arg == "-":
+                raise InputError("stdin cannot be compared with a directory")
+            target = os.path.join(args.left if ldir else args.right, os.path.basename(file_arg))
+            if not os.path.isfile(target):
+                raise InputError(f"{target}: no such file to compare with {file_arg}")
+            if ldir:
+                args.left = target
+            else:
+                args.right = target
         res = compare(
             read_input(args.left),
             read_input(args.right),
