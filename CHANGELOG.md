@@ -7,6 +7,51 @@ and each tool is versioned independently following
 
 ## [Unreleased]
 
+## 2026-10-30
+
+### Added
+
+- **subnet-planner 0.1.0** (Go, standard library only): IPv4/IPv6 address
+  planning, IPAM conflict checks and route aggregation.
+  - `plan`: VLSM allocation inside a parent prefix from host counts or
+    prefix lengths, largest first and best fit, avoiding prefixes and
+    addresses already in use (`--used` inventories, `--exclude`); rows equal
+    to or containing the parent are recognised as its own record; growth
+    percentage, per-subnet reserve, `/31` (RFC 3021), `/64` minimum for
+    IPv6 host counts with a warning on non-/64 LANs; exact minimum parent
+    size when requests do not fit; text, JSON, CSV and NetBox import CSV.
+  - `check`: per-VRF duplicate prefixes, nesting under non-container
+    prefixes (or any nesting for lists without status), host bits set,
+    duplicate addresses (shared roles such as anycast/VRRP exempted),
+    orphan addresses, address/subnet mask mismatches, network/broadcast and
+    IPv6 subnet-router anycast addresses assigned to hosts, optional
+    cross-VRF overlaps; file:line references; Nagios exit codes.
+  - `aggregate`: exact minimal prefix list, or at most N prefixes per
+    family with the fewest extra addresses (`--max`, extra space reported);
+    plain, Cisco and Junos prefix-list or JSON output.
+  - `free` (unallocated space, optional split into fixed-size subnets) and
+    `info` (subnet calculator with IANA special-purpose registry
+    classification and reverse DNS zones, RFC 2317 and nibble notes).
+  - Inputs auto-detected: NetBox CSV exports (`,` `;` tab, BOM), NetBox
+    API JSON, plan JSON, plain lists; exact 128-bit arithmetic for IPv6.
+  - Tests include property checks against a bitmap model (aggregation),
+    exhaustive-packing checks (allocation) and lossy-aggregation invariants.
+
+### Fixed
+
+- **netcfg-diff 0.1.1**: a corrupt `.gz` input crashed with a `zlib.error`
+  traceback instead of a clean error (exit code 2).
+- **netcfg-diff 0.1.1**: files that are not valid UTF-8 (legacy
+  Windows-1252/Latin-1 backups with accented descriptions or banners) were
+  decoded with replacement characters, so they never compared equal to a
+  UTF-8 export of the same configuration; they are now decoded as
+  Windows-1252 (Latin-1 for undefined bytes), and a UTF-8 BOM is skipped.
+
+### Changed
+
+- **netcfg-diff 0.1.1**: `netcfg-diff FILE DIR` (or `DIR FILE`) compares
+  FILE with `DIR/basename(FILE)`, like diff(1), instead of failing.
+
 ## 2026-10-28
 
 ### Added

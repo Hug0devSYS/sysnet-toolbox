@@ -26,9 +26,10 @@ Every tool in this repository follows the same rules:
 | [dnsdoctor](tools/dnsdoctor/) | Go | End-to-end DNS zone diagnostics: iterative walk from the root, parent/child NS consistency, glue, lame delegations, SOA serial drift, DNSSEC chain of trust. | Beta (v0.1.1) |
 | [tlsaudit](tools/tlsaudit/) | Go | TLS fleet audit: expiry, incomplete/untrusted chains, SAN mismatch, SSLv3–TLS 1.3, full cipher suite enumeration, DHE strength, OCSP stapling, STARTTLS; text/JSON/summary output and Prometheus textfile metrics. | Beta (v0.1.1) |
 | [nftlint](tools/nftlint/) | Python | nftables / iptables-save static analysis: shadowed, redundant and unreachable rules, any-any accepts, permissive policies, missing IPv6 filtering; correlates `ss` listening sockets with the input path to show what is really reachable and from which sources. | Beta (v0.1.1) |
-| [netcfg-diff](tools/netcfg-diff/) | Python | Semantic diff of Cisco IOS/IOS-XE/NX-OS/IOS-XR/EOS, Junos (brace or set) and FortiOS configurations: hierarchical, order-aware (ACLs, firewall policies, policy chains), modifications instead of remove+add, secrets masked; text/JSON/summary and Junos set/delete/insert output, directory mode for backup trees. | Beta (v0.1.0) |
+| [netcfg-diff](tools/netcfg-diff/) | Python | Semantic diff of Cisco IOS/IOS-XE/NX-OS/IOS-XR/EOS, Junos (brace or set) and FortiOS configurations: hierarchical, order-aware (ACLs, firewall policies, policy chains), modifications instead of remove+add, secrets masked; text/JSON/summary and Junos set/delete/insert output, directory mode for backup trees. | Beta (v0.1.1) |
 | [pmtud-probe](tools/pmtud-probe/) | Go | Path MTU discovery for IPv4/IPv6 without privileges: PMTUD black-hole detection (silent drops vs ICMP fragmentation-needed / packet-too-big), broken ICMP, TCP MSS clamping check; text/JSON output, Nagios exit codes. | Beta (v0.1.0) |
 | [lldp-mapper](tools/lldp-mapper/) | Python | Layer-2 topology discovery over SNMP (LLDP-MIB, CISCO-CDP-MIB) into text, JSON, Mermaid or Graphviz; flags duplex, speed, auto-negotiation and native VLAN mismatches, one-way adjacencies and miscabled ports; scoped crawling, SNMPv1/v2c built in, SNMPv3 via net-snmp. | Beta (v0.1.0) |
+| [subnet-planner](tools/subnet-planner/) | Go | IPv4/IPv6 VLSM planning around the space already used in a NetBox/CSV export (NetBox-importable output), IPAM conflict checks (duplicate/nested prefixes, duplicate/orphan addresses, mask mismatches per VRF), exact or bounded route aggregation with Cisco/Junos prefix-lists, free space, subnet calculator. | Beta (v0.1.0) |
 | [sysnet-presence](tools/discord-presence/) | Python | Optional Discord Rich Presence for the toolbox: `sysnet-presence -- <tool> ...` shows the running tool with the toolbox logo on your Discord profile (local IPC only, arguments never shown). | Beta (v0.1.0) |
 
 Planned tools and their priority are tracked in [ROADMAP.md](ROADMAP.md).
@@ -57,6 +58,10 @@ tlsaudit --summary www.example.com smtp://mx.example.com
 
 go install github.com/Hug0devSYS/sysnet-toolbox/tools/pmtud-probe@latest
 pmtud-probe --tcp 443 vpn-peer.example.net
+
+go install github.com/Hug0devSYS/sysnet-toolbox/tools/subnet-planner@latest
+subnet-planner plan --parent 10.20.0.0/16 --used netbox-prefixes.csv users=500 voice=120 transit=/31
+subnet-planner check netbox-prefixes.csv netbox-ip-addresses.csv
 
 # Python tools
 pipx install "git+https://github.com/Hug0devSYS/sysnet-toolbox.git#subdirectory=tools/nftlint"

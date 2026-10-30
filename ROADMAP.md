@@ -16,7 +16,6 @@ All P1 items of the initial backlog are done.
 
 | # | Tool | Language | Problem solved | Effort |
 |---|------|----------|----------------|--------|
-| 7 | `subnet-planner` | Go | VLSM planning for IPv4/IPv6, overlap detection in a CSV/NetBox export, route aggregation. | M |
 | 8 | `syslog-triage` | Go | Ingest syslog/journald, cluster messages by pattern (Drain algorithm), detect spikes. | L |
 | 9 | `cert-inventory` | PowerShell | Inventory certificate stores across a Windows fleet over WinRM: expirations, ADCS templates, exportable private keys. | M |
 
@@ -51,6 +50,9 @@ All P1 items of the initial backlog are done.
 | `stp-audit` | Python | P2 | Spanning-tree health over SNMP (BRIDGE-MIB, RSTP-MIB, IEEE8021-MSTP-MIB, Cisco PVST via `community@vlan` contexts): every switch agrees on the same root bridge and it is the intended one (priority plan), unexpected root or secondary root, topology-change counters and recent TCs (flapping edge ports), blocked/alternate ports drawn on the `lldp-mapper` graph, edge ports without BPDU guard where the MIB exposes it, mismatched STP modes between neighbours. Reuses lldp-mapper's SNMP client and topology. | M |
 | `ipsec-audit` | Python | P2 | Audit strongSwan / libreswan site-to-site VPNs from `swanctl --list-sas --list-conns` (or `ipsec status` / `ipsec trafficstatus`) and their config files: configured tunnels that are not up, CHILD_SAs missing for configured traffic selectors, weak proposals (3DES, SHA-1, MD5, MODP-1024/1536, IKEv1 aggressive mode), PFS disabled, lifetime/rekey mismatches, PSKs shorter than 20 characters or shared between peers, certificates close to expiry; read-only, JSON and Nagios output. Complements `wg-audit` for IPsec. | M |
 | `dhcp-pool-watch` | Python | P3 | DHCP pool utilisation and exhaustion forecast for ISC Kea (control-agent `stat-lease4-get`/`statistic-get-all`), ISC dhcpd `dhcpd.leases` and dnsmasq lease files: per-subnet usage, regression-based days-to-exhaustion, static reservations inside dynamic ranges, duplicate MAC/hostname reservations, abandoned/declined leases (address conflicts); Prometheus textfile and Nagios output. | S |
+| `route-diff` | Python | P2 | Before/after comparison of routing tables around a change window: parses `show ip route` / `show ipv6 route` (IOS/IOS-XE/NX-OS/EOS), `show route` (Junos, text or `display json`), `ip -j route`/`ip -6 route` and `vtysh show ip route json`; reports lost and new prefixes per VRF, next-hop and outgoing-interface changes, ECMP width changes, protocol/AD/metric changes and default-route moves, with a summary per protocol. Offline, read-only; Nagios and JSON output for automated post-change checks. | M |
+| `ad-dns-audit` | PowerShell | P2 | Health of Active Directory-integrated DNS through the DnsServer module (read-only): aging/scavenging settings per zone and server (scavenging enabled nowhere, or on several servers), stale dynamic records past the refresh window, A records without matching PTR and PTRs pointing to missing names, duplicate addresses held by several hostnames, missing `_msdcs`/SRV records per domain controller, forwarders and conditional forwarders that do not answer, zone replication scope consistency; CSV/JSON report. | M |
+| `resolv-audit` | Bash | P3 | Linux client resolver sanity check without dependencies: `/etc/resolv.conf` provenance (systemd-resolved stub, NetworkManager, static, broken symlink), effective per-link DNS servers and routing domains (`resolvectl`), search list and `ndots` pitfalls (container/Kubernetes `ndots:5`), unreachable or non-recursive nameservers, `nsswitch.conf` order, DNSSEC/DoT settings and stale `/etc/hosts` overrides of names that also exist in DNS; Nagios output. | S |
 
 ## Done
 
@@ -63,6 +65,7 @@ All P1 items of the initial backlog are done.
 | – | [`sysnet-presence`](tools/discord-presence/) | Python | 0.1.0 | 2026-10-21 |
 | 5 | [`pmtud-probe`](tools/pmtud-probe/) | Go | 0.1.0 | 2026-10-23 |
 | 6 | [`lldp-mapper`](tools/lldp-mapper/) | Python | 0.1.0 | 2026-10-28 |
+| 7 | [`subnet-planner`](tools/subnet-planner/) | Go | 0.1.0 | 2026-10-30 |
 
 `dnsdoctor` — end-to-end DNS diagnostics: iterative resolution from the root,
 lame delegations, parent/child NS consistency, SOA serial drift between
@@ -100,6 +103,14 @@ merged per cable, duplex/speed/auto-negotiation/native VLAN mismatches with
 the source of every fact, one-way adjacencies, miscabling; scoped crawl;
 text, JSON, Mermaid and DOT output; built-in SNMPv1/v2c client, SNMPv3 via
 net-snmp; offline mode on saved walks.
+
+`subnet-planner` — IPv4/IPv6 address planning and IPAM hygiene: VLSM
+allocation (largest first, best fit) around the space already used in a
+NetBox/CSV/JSON export, NetBox-importable output; duplicate and nested
+prefixes, duplicate/orphan addresses, mask mismatches and reserved
+addresses per VRF; exact and bounded-lossy route aggregation with Cisco and
+Junos prefix-list output; free-space listing; subnet calculator with
+special-purpose registry and reverse DNS zones.
 
 `sysnet-presence` — out-of-backlog addition requested by the owner: Discord
 Rich Presence wrapper showing the running toolbox tool with the logo.

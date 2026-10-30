@@ -65,6 +65,16 @@
       ],
       "result": "success",
       "notes": "lldp-mapper 0.1.0 built with the Python standard library only: ruff check/format and 108 pytest tests pass on Python 3.13 and 3.9. Native SNMPv2c client cross-validated against a local net-snmp snmpd (identical varbinds to snmpbulkwalk on ~600 OIDs, default and -Ox output parsers); SNMPv3 authPriv (SHA-256/AES, passphrases with spaces and quotes) verified through the net-snmp back-end; Mermaid and DOT outputs rendered with mmdc and graphviz. No LLDP-capable agent in the sandbox: LLDP/CDP logic covered by a synthetic reference lab and a typed Catalyst walk fixture. nftlint maintenance (0.1.1): scoped IPv6 ss sockets, symbolic ss output rejected, protocol-aware sensitive ports; 88 tests pass. Next run: new tool subnet-planner (P2 #7) + maintenance of netcfg-diff (oldest, 2026-10-21; sysnet-presence ties)."
+    },
+    {
+      "date": "2026-10-30",
+      "mode": "new-tool+maintenance",
+      "tools_touched": [
+        "subnet-planner",
+        "netcfg-diff"
+      ],
+      "result": "success",
+      "notes": "subnet-planner 0.1.0 built with the Go standard library only: gofmt/vet/test -race pass (property tests for aggregation, packing and lossy aggregation). Scale check: 100k-row inventory checked in 0.6s, 5000 prefixes reduced to 100 in 1.3s. Design decision: --used rows equal to or containing the parent are ignored (a NetBox export always contains the parent container). netcfg-diff maintenance (0.1.1): corrupt gzip handled, Windows-1252 fallback decoding, FILE DIR comparison; ruff and 55 pytest tests pass on Python 3.13 (3.9 not available in this sandbox; CI runs 3.12). Next run: new tool syslog-triage (P2 #8) + maintenance of sysnet-presence (oldest, 2026-10-21)."
     }
   ],
   "tools": {
@@ -88,9 +98,9 @@
     },
     "netcfg-diff": {
       "language": "Python",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "created": "2026-10-21",
-      "last_maintenance": "2026-10-21"
+      "last_maintenance": "2026-10-30"
     },
     "sysnet-presence": {
       "language": "Python",
@@ -110,6 +120,12 @@
       "version": "0.1.0",
       "created": "2026-10-28",
       "last_maintenance": "2026-10-28"
+    },
+    "subnet-planner": {
+      "language": "Go",
+      "version": "0.1.0",
+      "created": "2026-10-30",
+      "last_maintenance": "2026-10-30"
     }
   }
 }
