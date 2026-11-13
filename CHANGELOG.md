@@ -7,6 +7,60 @@ and each tool is versioned independently following
 
 ## [Unreleased]
 
+## 2026-11-13
+
+### Added
+
+- **syslog-triage 0.1.0** (Go, standard library only): syslog/journald
+  pattern mining and spike detection.
+  - Per-line format detection: RFC 3164 with or without `<PRI>` (year
+    inferred from the file time with New Year roll-over, `--year`, `--tz`),
+    RFC 3339 high-precision lines (rsyslog, syslog-ng, `journalctl -o
+    short-iso`), RFC 5424 with structured data, Cisco IOS/NX-OS/ASA
+    `%FAC-SEV-MNEMONIC` messages with or without a relay header, and
+    `journalctl -o json` (binary `MESSAGE` arrays included); gzip detected by
+    magic bytes; `--journal` runs `journalctl` with a timeout; `--raw` for
+    application logs.
+  - Drain template mining (fixed-depth prefix tree, similarity threshold,
+    bounded fan-out, one partition per program) after typed masking of IPv4/
+    IPv6 addresses and ports, prefixes, MAC addresses (three notations),
+    UUIDs, hex identifiers and numbers with units; interface names and paths
+    kept intact.
+  - Spike detection per pattern and on the overall volume: robust trailing
+    baseline (median + K x scaled MAD with a Poisson floor), minimum count
+    and ratio, burst buckets excluded from the baseline, bursts lasting a
+    whole window reported as sustained level shifts.
+  - New patterns against a persistent model (`--model`, written only with
+    `--update-model`, atomic, mode 0600, `--model-max-age`), or first seen
+    within `--recent` of a longer input.
+  - Filters (`--since`/`--until` absolute or relative, `--min-severity`,
+    program and host regular expressions); text output with control
+    characters neutralised, `--json`; Nagios exit codes with
+    `--alert-severity` and `--crit-severity`.
+
+### Fixed
+
+- **sysnet-presence 0.1.1**: `--hold --duration` could crash with
+  `ValueError` when the deadline passed between the loop test and the sleep
+  (negative sleep).
+- **sysnet-presence 0.1.1**: `--duration` and `--timeout` accepted `inf` and
+  `nan` (hold forever, or exit immediately).
+- **sysnet-presence 0.1.1**: SIGTERM/SIGHUP/SIGQUIT sent to the wrapper left
+  the wrapped command running; they are now forwarded to it and the wrapper
+  waits for it. Ctrl-C during the Discord handshake no longer abandons the
+  child.
+
+### Changed
+
+- **sysnet-presence 0.1.1**: descriptions for every toolbox tool
+  (`pmtud-probe`, `lldp-mapper`, `subnet-planner`, `syslog-triage` were
+  shown without one), checked by a test against the `tools/` directory.
+- **sysnet-presence 0.1.1**: the tool name is found through launchers
+  (`sudo`, `doas`, `env`, `nice`, `ionice`, `timeout`, `time`, `nohup`,
+  `stdbuf`) and, for interpreters (`python3 -m`, `uv run`, `pipx run`,
+  `go run`), only a known toolbox tool is named, so script names and `-c`
+  code stay private; unusual executable names are shown as "command".
+
 ## 2026-10-30
 
 ### Added

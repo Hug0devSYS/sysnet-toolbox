@@ -75,6 +75,16 @@
       ],
       "result": "success",
       "notes": "subnet-planner 0.1.0 built with the Go standard library only: gofmt/vet/test -race pass (property tests for aggregation, packing and lossy aggregation). Scale check: 100k-row inventory checked in 0.6s, 5000 prefixes reduced to 100 in 1.3s. Design decision: --used rows equal to or containing the parent are ignored (a NetBox export always contains the parent container). netcfg-diff maintenance (0.1.1): corrupt gzip handled, Windows-1252 fallback decoding, FILE DIR comparison; ruff and 55 pytest tests pass on Python 3.13 (3.9 not available in this sandbox; CI runs 3.12). Next run: new tool syslog-triage (P2 #8) + maintenance of sysnet-presence (oldest, 2026-10-21)."
+    },
+    {
+      "date": "2026-11-13",
+      "mode": "new-tool+maintenance",
+      "tools_touched": [
+        "syslog-triage",
+        "sysnet-presence"
+      ],
+      "result": "success",
+      "notes": "syslog-triage 0.1.0 built with the Go standard library only (module proxy still unreachable): gofmt/vet/test -race pass (parsers for RFC 3164/3339/5424, Cisco and journald JSON, masking, Drain, model round trip, spike detector, CLI with fake journalctl). Scale check: 1.04M syslog lines analysed in 2.4s. Design decisions: one Drain partition per program by default; model parameters take precedence over flags; first --update-model run reports nothing as new; patterns without severity always alert. sysnet-presence maintenance (0.1.1): negative sleep crash in --hold, inf/nan durations, SIGTERM/SIGHUP forwarding, descriptions for all tools, tool name through sudo/env/timeout and interpreters without leaking script names; ruff and 43 pytest tests pass on Python 3.13. Next run: new tool cert-inventory (P2 #9, PowerShell) + maintenance of dnsdoctor (oldest, 2026-10-21)."
     }
   ],
   "tools": {
@@ -104,9 +114,9 @@
     },
     "sysnet-presence": {
       "language": "Python",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "created": "2026-10-21",
-      "last_maintenance": "2026-10-21",
+      "last_maintenance": "2026-11-13",
       "path": "tools/discord-presence"
     },
     "pmtud-probe": {
@@ -126,6 +136,12 @@
       "version": "0.1.0",
       "created": "2026-10-30",
       "last_maintenance": "2026-10-30"
+    },
+    "syslog-triage": {
+      "language": "Go",
+      "version": "0.1.0",
+      "created": "2026-11-13",
+      "last_maintenance": "2026-11-13"
     }
   }
 }

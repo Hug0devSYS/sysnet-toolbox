@@ -4,7 +4,8 @@
 
 A collection of focused, production-grade command-line tools for systems and
 network engineers: DNS/TLS/MTU diagnostics, firewall and network-config
-auditing, topology discovery, inventory and lightweight monitoring.
+auditing, topology discovery, log triage, inventory and lightweight
+monitoring.
 
 Every tool in this repository follows the same rules:
 
@@ -30,7 +31,8 @@ Every tool in this repository follows the same rules:
 | [pmtud-probe](tools/pmtud-probe/) | Go | Path MTU discovery for IPv4/IPv6 without privileges: PMTUD black-hole detection (silent drops vs ICMP fragmentation-needed / packet-too-big), broken ICMP, TCP MSS clamping check; text/JSON output, Nagios exit codes. | Beta (v0.1.0) |
 | [lldp-mapper](tools/lldp-mapper/) | Python | Layer-2 topology discovery over SNMP (LLDP-MIB, CISCO-CDP-MIB) into text, JSON, Mermaid or Graphviz; flags duplex, speed, auto-negotiation and native VLAN mismatches, one-way adjacencies and miscabled ports; scoped crawling, SNMPv1/v2c built in, SNMPv3 via net-snmp. | Beta (v0.1.0) |
 | [subnet-planner](tools/subnet-planner/) | Go | IPv4/IPv6 VLSM planning around the space already used in a NetBox/CSV export (NetBox-importable output), IPAM conflict checks (duplicate/nested prefixes, duplicate/orphan addresses, mask mismatches per VRF), exact or bounded route aggregation with Cisco/Junos prefix-lists, free space, subnet calculator. | Beta (v0.1.0) |
-| [sysnet-presence](tools/discord-presence/) | Python | Optional Discord Rich Presence for the toolbox: `sysnet-presence -- <tool> ...` shows the running tool with the toolbox logo on your Discord profile (local IPC only, arguments never shown). | Beta (v0.1.0) |
+| [syslog-triage](tools/syslog-triage/) | Go | Syslog/journald triage: clusters messages into templates (Drain) with address/number masking, detects per-pattern and overall volume spikes on a robust baseline, reports never-seen patterns against a persistent model; RFC 3164/3339/5424, Cisco %FAC-SEV-MNEMONIC, `journalctl -o json`, gzip; Nagios exit codes, JSON. | Beta (v0.1.0) |
+| [sysnet-presence](tools/discord-presence/) | Python | Optional Discord Rich Presence for the toolbox: `sysnet-presence -- <tool> ...` shows the running tool with the toolbox logo on your Discord profile (local IPC only, arguments never shown). | Beta (v0.1.1) |
 
 Planned tools and their priority are tracked in [ROADMAP.md](ROADMAP.md).
 
@@ -62,6 +64,9 @@ pmtud-probe --tcp 443 vpn-peer.example.net
 go install github.com/Hug0devSYS/sysnet-toolbox/tools/subnet-planner@latest
 subnet-planner plan --parent 10.20.0.0/16 --used netbox-prefixes.csv users=500 voice=120 transit=/31
 subnet-planner check netbox-prefixes.csv netbox-ip-addresses.csv
+
+go install github.com/Hug0devSYS/sysnet-toolbox/tools/syslog-triage@latest
+syslog-triage --journal --since -6h --recent 15m --min-severity warning
 
 # Python tools
 pipx install "git+https://github.com/Hug0devSYS/sysnet-toolbox.git#subdirectory=tools/nftlint"
