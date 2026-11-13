@@ -139,3 +139,101 @@ def test_usage_errors(capsys):
     assert (
         cli.parse_duration("90s") == 90 and cli.parse_duration("2h") == 7200 and cli.parse_duration("5") == 5
     )
+
+
+@pytest.mark.parametrize(
+    "command,name",
+    [
+        (["nftlint", "rules.json"], "nftlint"),
+        (["/usr/local/bin/dnsdoctor", "example.com"], "dnsdoctor"),
+        (["C:\\Tools\\tlsaudit.exe", "host"], "tlsaudit"),
+        (["sudo", "-E", "nftlint", "--live"], "nftlint"),
+        (["sudo", "-u", "netops", "lldp-mapper", "core1"], "lldp-mapper"),
+        (["sudo", "-n", "nftlint"], "nftlint"),
+        (["env", "-i", "SNMP_COMMUNITY=x", "lldp-mapper"], "lldp-mapper"),
+        (["timeout", "-s", "KILL", "30", "pmtud-probe", "h"], "pmtud-probe"),
+        (["nice", "-n", "10", "ionice", "-c", "3", "syslog-triage", "f"], "syslog-triage"),
+        (["python3", "-m", "nftlint.cli", "x"], "nftlint"),
+        (["python3.12", "-I", "customer-backup.py"], "python3.12"),
+        (["python3", "-c", "import nftlint", "nftlint"], "python3"),
+        (["python3", "-m", "http.server"], "python3"),
+        (["python3", "-m", "lldp_mapper", "core1"], "lldp-mapper"),
+        (["uv", "run", "netcfg-diff", "a", "b"], "netcfg-diff"),
+        (["pipx", "run", "--spec", "x", "nftlint"], "nftlint"),
+        (["go", "run", "./tools/subnet-planner/", "info"], "subnet-planner"),
+        (["go", "run", "."], "go"),
+        (["sudo"], "sudo"),
+        (["sudo", "-u"], "sudo"),
+        (["./weird name;rm"], "command"),
+        ([], "sysnet-toolbox"),
+    ],
+)
+def test_tool_name(command, name):
+    assert cli.tool_name(command) == name
+
+
+def test_every_tool_has_a_description():
+    """The presence describes every tool of the repository."""
+    tools_dir = __import__("pathlib").Path(__file__).resolve().parents[2]
+    names = {p.name for p in tools_dir.iterdir() if p.is_dir() and p.name != "discord-presence"}
+    if not names:
+        pytest.skip("not running from a repository checkout")
+    assert names <= set(cli.TOOLS), sorted(names - set(cli.TOOLS))
+
+
+@pytest.mark.parametrize("value", ["inf", "nan", "-5m", "0", "1e400s"])
+def test_duration_must_be_finite(value):
+    import argparse
+
+    with pytest.raises(argparse.ArgumentTypeError):
+        cli.parse_duration(value)
+
+
+def test_timeout_must_be_finite(capsys):
+    assert cli.main(["--timeout", "nan", "--", "ls"]) == 2
+    assert cli.main(["--timeout", "inf", "--", "ls"]) == 2
+
+
+def test_hold_deadline_passes_before_sleep(discord, monkeypatch):
+    """The deadline can pass between the loop test and the sleep: a negative
+    sleep used to raise ValueError."""
+    srv = discord()
+    clock = iter([0.0, 59.0, 61.0, 61.0, 61.0, 61.0])
+    monkeypatch.setattr(cli.time, "monotonic", lambda: next(clock))
+    slept = []
+    monkeypatch.setattr(cli.time, "sleep", slept.append)
+    assert cli.main(["--hold", "--duration", "60s", "--client-id", CID], client_factory=factory(srv)) == 0
+    assert slept == [0.0]
+
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="POSIX signals")
+def test_sigterm_is_forwarded(tmp_path):
+    """SIGTERM sent to the wrapper reaches the wrapped command."""
+    import os
+    import signal
+    import threading
+
+    marker = tmp_path / "got-term"
+    child = (
+        "import signal, sys, time, pathlib\n"
+        f"p = pathlib.Path({str(marker)!r})\n"
+        "signal.signal(signal.SIGTERM, lambda *a: (p.write_text('x'), sys.exit(7)))\n"
+        "p.with_suffix('.ready').write_text('r')\n"
+        "time.sleep(10)\n"
+    )
+
+    def killer():
+        ready = marker.with_suffix(".ready")
+        for _ in range(500):
+            if ready.exists():
+                break
+            threading.Event().wait(0.01)
+        os.kill(os.getpid(), signal.SIGTERM)
+
+    before = signal.getsignal(signal.SIGTERM)
+    t = threading.Thread(target=killer)
+    t.start()
+    code = cli.main(["--", sys.executable, "-c", child])
+    t.join()
+    assert code == 7 and marker.exists()
+    assert signal.getsignal(signal.SIGTERM) == before  # handler restored

@@ -98,9 +98,18 @@ alias tlsaudit='sysnet-presence -- tlsaudit'
 alias nftlint='sysnet-presence -- nftlint'
 ```
 
-Known toolbox tools get a description as second line (`dnsdoctor` → "DNS
-zone diagnostics", `netcfg-diff` → "Network configuration diff", ...); any
-other command shows "Running <name>".
+Every toolbox tool gets a description as second line (`dnsdoctor` → "DNS
+zone diagnostics", `netcfg-diff` → "Network configuration diff",
+`syslog-triage` → "Log pattern triage", ...); any other command shows
+"Running <name>".
+
+The name is found through common launchers: `sudo -E nftlint --live`,
+`env SNMP_COMMUNITY=... lldp-mapper`, `timeout 30 pmtud-probe`,
+`nice -n 10 syslog-triage` show the tool, not the launcher. Through an
+interpreter (`python3 -m lldp_mapper`, `uv run netcfg-diff`,
+`go run ./tools/subnet-planner`) only a known toolbox tool is named;
+anything else (`python3 script.py`, `python3 -c ...`) shows the interpreter,
+so script names and inline code stay private.
 
 ### Exit codes
 
@@ -117,6 +126,9 @@ was killed by signal N), so it can be used in scripts and aliases. With
   silent unless `-v` is given.
 - Ctrl-C reaches the wrapped command as usual; the presence is cleared when
   the command exits (Discord also clears it when the process ends).
+- SIGTERM, SIGHUP and SIGQUIT received by `sysnet-presence` (systemd stop,
+  closed terminal) are forwarded to the wrapped command, which is then
+  waited for, instead of being left running without its wrapper.
 - Text fields are normalised to Discord's 2–128 character limits.
 - Discord shows the activity as "Playing"; the application name, not this
   tool, decides the title.
@@ -125,7 +137,7 @@ was killed by signal N), so it can be used in scripts and aliases. With
 
 ## Security and privacy
 
-- Only the **tool name** (the basename of the command) and its description
+- Only the **tool name** (the basename of the command, see above) and its description
   are shown — never the arguments, so file names, host names, zones and
   addresses you are working on do not appear on your public profile.
   `--details` / `--state` show exactly what you type: keep customer names and

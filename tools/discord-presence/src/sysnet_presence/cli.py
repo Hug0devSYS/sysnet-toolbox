@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import math
 import os
+import re
+import signal
 import subprocess
 import sys
 import time
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence
 
 from . import __version__
 from .ipc import Client, IPCError
@@ -23,7 +26,27 @@ TOOLS = {
     "tlsaudit": "TLS fleet audit",
     "nftlint": "Firewall ruleset analysis",
     "netcfg-diff": "Network configuration diff",
+    "pmtud-probe": "Path MTU diagnostics",
+    "lldp-mapper": "Layer-2 topology discovery",
+    "subnet-planner": "IP address planning",
+    "syslog-triage": "Log pattern triage",
 }
+
+# Launchers skipped when naming the tool: "sudo nftlint --live" is nftlint.
+# Value: the options of each launcher that take a separate argument.
+WRAPPERS = {
+    "sudo": {"-u", "-g", "-C", "-h", "-p", "-r", "-t", "-U", "-D", "-R", "-T"},
+    "doas": {"-u", "-C"},
+    "env": {"-u", "-C", "-S"},
+    "nice": {"-n"},
+    "ionice": {"-c", "-n", "-p"},
+    "timeout": {"-s", "-k"},
+    "stdbuf": set(),
+    "time": {"-f", "-o"},
+    "nohup": set(),
+}
+INTERPRETERS = {"python", "python3", "pypy3", "uv", "uvx", "pipx", "go"}
+_SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$")
 
 DESCRIPTION = """\
 Show the sysnet-toolbox tool you are running as Discord Rich Presence
@@ -68,9 +91,58 @@ def parse_duration(value: str) -> float:
         secs = float(v[:-1]) * units[v[-1]] if v and v[-1] in units else float(v)
     except ValueError:
         raise argparse.ArgumentTypeError(f"invalid duration {value!r} (e.g. 90s, 30m, 2h)") from None
-    if secs <= 0:
-        raise argparse.ArgumentTypeError("duration must be positive")
+    if not math.isfinite(secs) or secs <= 0:
+        raise argparse.ArgumentTypeError("duration must be a positive finite value")
     return secs
+
+
+def _stem(path: str) -> str:
+    name = os.path.basename(path.replace("\\", "/"))
+    root, ext = os.path.splitext(name)
+    return root if ext.lower() in (".exe", ".py", ".sh", ".bat", ".cmd", ".ps1") else name
+
+
+def tool_name(command: Sequence[str]) -> str:
+    """Name shown for a wrapped command, looking through sudo/env/... and
+    interpreters ("sudo -E nftlint", "python3 -m nftlint", "go run ./tools/x",
+    "pipx run nftlint"). Arguments are never shown: through an interpreter,
+    only a known toolbox tool is named."""
+    i = 0
+    while i < len(command):
+        word = command[i]
+        base = _stem(word)
+        if base in WRAPPERS:
+            i += 1
+            # Skip the launcher's options (and their values) and VAR=value.
+            while i < len(command) and (command[i].startswith("-") or "=" in command[i]):
+                opt = command[i]
+                i += 1
+                if opt == "--":
+                    break
+                if opt in WRAPPERS[base]:
+                    i += 1
+            if base == "timeout" and i < len(command):
+                i += 1  # the duration
+            continue
+        if base in INTERPRETERS or base.startswith("python3."):
+            # Only a known toolbox tool is named; scripts, modules and
+            # "-c" code are arguments and stay private.
+            rest = list(command[i + 1 :])
+            if "-c" in rest:
+                return base
+            if "-m" in rest and rest.index("-m") + 1 < len(rest):
+                mod = rest[rest.index("-m") + 1].split(".")[0].replace("_", "-")
+                return mod if mod in TOOLS else base
+            for r in rest:
+                cand = _stem(r.rstrip("/\\"))
+                if cand in TOOLS:
+                    return cand
+            return base
+        return base if _SAFE_NAME.match(base) else "command"
+    if not command:
+        return "sysnet-toolbox"
+    base = _stem(command[0])
+    return base if _SAFE_NAME.match(base) else "command"
 
 
 def build_activity(args: argparse.Namespace, tool: Optional[str], start: Optional[float]) -> Dict[str, Any]:
@@ -148,8 +220,8 @@ def main(argv: Optional[Sequence[str]] = None, client_factory: ClientFactory = C
     if args.duration and not args.hold:
         print("sysnet-presence: --duration requires --hold", file=sys.stderr)
         return EXIT_USAGE
-    if args.timeout <= 0:
-        print("sysnet-presence: --timeout must be positive", file=sys.stderr)
+    if not math.isfinite(args.timeout) or args.timeout <= 0:
+        print("sysnet-presence: --timeout must be a positive number of seconds", file=sys.stderr)
         return EXIT_USAGE
 
     if args.check:
@@ -217,15 +289,40 @@ def run_hold(args, client_factory: ClientFactory) -> int:
     deadline = time.monotonic() + args.duration if args.duration else None
     try:
         while deadline is None or time.monotonic() < deadline:
-            time.sleep(min(1.0, deadline - time.monotonic()) if deadline else 1.0)
+            # The deadline can pass between the test and the sleep.
+            time.sleep(max(0.0, min(1.0, deadline - time.monotonic())) if deadline else 1.0)
     except KeyboardInterrupt:
         pass
     _stop_presence(client)
     return EXIT_OK
 
 
+FORWARDED_SIGNALS = tuple(getattr(signal, n) for n in ("SIGTERM", "SIGHUP", "SIGQUIT") if hasattr(signal, n))
+
+
+@contextlib.contextmanager
+def _forward_signals(proc: subprocess.Popen[bytes]) -> Iterator[None]:
+    """Relay SIGTERM/SIGHUP/SIGQUIT to the wrapped command (systemd stop,
+    closed terminal) instead of dying and leaving it orphaned."""
+    previous = {}
+
+    def relay(signum: int, _frame: Any) -> None:
+        with contextlib.suppress(OSError):
+            proc.send_signal(signum)
+
+    for sig in FORWARDED_SIGNALS:
+        with contextlib.suppress(OSError, ValueError):  # ValueError: not the main thread
+            previous[sig] = signal.signal(sig, relay)
+    try:
+        yield
+    finally:
+        for sig, handler in previous.items():
+            with contextlib.suppress(OSError, ValueError):
+                signal.signal(sig, handler)
+
+
 def run_wrapped(args, command: List[str], client_factory: ClientFactory) -> int:
-    tool = os.path.splitext(os.path.basename(command[0]))[0]
+    tool = tool_name(command)
     start = time.time()
     try:
         # Start the command first: the presence must never delay or break it.
@@ -236,16 +333,20 @@ def run_wrapped(args, command: List[str], client_factory: ClientFactory) -> int:
     except PermissionError:
         print(f"sysnet-presence: {command[0]}: permission denied", file=sys.stderr)
         return 126
-    client = _start_presence(args, client_factory, tool, start)
-    try:
-        while True:
-            try:
-                code = proc.wait()
-                break
-            except KeyboardInterrupt:
-                continue  # the child received the SIGINT too; wait for it to exit
-    finally:
-        _stop_presence(client)
+    client: Optional[Client] = None
+    with _forward_signals(proc):
+        # Ctrl-C while contacting Discord: the child got it too, keep waiting.
+        with contextlib.suppress(KeyboardInterrupt):
+            client = _start_presence(args, client_factory, tool, start)
+        try:
+            while True:
+                try:
+                    code = proc.wait()
+                    break
+                except KeyboardInterrupt:
+                    continue  # the child received the SIGINT too; wait for it to exit
+        finally:
+            _stop_presence(client)
     if code < 0:  # killed by a signal: shell convention
         return 128 - code
     return code

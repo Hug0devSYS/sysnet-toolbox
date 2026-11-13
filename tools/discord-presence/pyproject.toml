@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sysnet-presence"
-version = "0.1.0"
+version = "0.1.1"
 description = "Show the sysnet-toolbox tool you are running as Discord Rich Presence, with the toolbox logo."
 readme = "README.md"
 license = { text = "MIT" }
