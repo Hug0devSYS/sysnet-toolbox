@@ -31,3 +31,4 @@ Thumbs.db
 *.pem
 *.key
 secrets.*
+tools/syslog-triage/syslog-triage
