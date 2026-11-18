@@ -14,9 +14,7 @@ All P1 items of the initial backlog are done.
 
 ### P2
 
-| # | Tool | Language | Problem solved | Effort |
-|---|------|----------|----------------|--------|
-| 9 | `cert-inventory` | PowerShell | Inventory certificate stores across a Windows fleet over WinRM: expirations, ADCS templates, exportable private keys. | M |
+All P2 items of the initial backlog are done.
 
 ### P3
 
@@ -55,6 +53,9 @@ All P1 items of the initial backlog are done.
 | `syslog-canary` | Go | P2 | End-to-end check of the log pipeline, the failure nobody notices until an incident: emits a uniquely tagged canary message through the local syslog socket / journald or directly over UDP, TCP or TLS (RFC 5425) to the collector, then proves it arrived by querying the destination (file on the collector over SSH, Loki, Elasticsearch/OpenSearch, Graylog APIs); reports delivery latency, loss and which hop drops it (relay vs collector); Nagios and Prometheus output. Complements `syslog-triage`, which can only analyse what was received. | S |
 | `acl-whatif` | Python | P2 | Offline "would this flow pass?" for change reviews and incident triage: evaluates a 5-tuple (or a CSV of flows) against nftables/iptables rulesets (reusing nftlint's interval engine), Cisco IOS/NX-OS/ASA ACLs, Junos filters and FortiOS policies (reusing netcfg-diff's parsers), and along a path of several devices; reports the first matching rule per device with file:line, the final verdict, and flows whose verdict differs between two config revisions. Read-only, CI-friendly JSON output. | M |
 | `vlan-audit` | Python | P3 | VLAN consistency across a switched network over SNMP (Q-BRIDGE-MIB, Cisco VTP/VLAN MIBs): VLANs allowed on one end of a trunk but not the other (using lldp-mapper's links), native VLAN and VLAN name mismatches between switches, VLANs defined but carried by no access port, access ports in VLANs missing from the uplink trunks (silent isolation), VTP domain/mode/revision hazards; text/JSON report and Nagios exit codes. Reuses lldp-mapper's SNMP client and topology. | M |
+| `link-health` | Python | P2 | Physical link triage over SNMP for every cable found by `lldp-mapper`: IF-MIB/EtherLike-MIB counter deltas between two polls (CRC/FCS and alignment errors, input errors, discards, late collisions), links that flapped since the last run (`ifLastChange`), MTU and speed mismatches between both ends of a link, half-duplex ports and error rates normalised per packet so a busy uplink and an idle access port compare fairly; persistent state file for deltas, text/JSON, Nagios and Prometheus textfile output. Read-only (SNMP GET/GETBULK). | M |
+| `dualstack-check` | Go | P2 | IPv6 parity of published services: for each name (or a zone/list), compare the IPv4 and IPv6 paths end to end — A vs AAAA present, both addresses reachable on the service port, same TLS certificate and HTTP status/redirect target on both families, PTR and forward-confirmed reverse DNS for each address, path MTU sanity (reuses `pmtud-probe`), RTT difference; reports services that are silently broken or degraded over IPv6 (the failure Happy Eyeballs hides from most users). | M |
+| `trust-diff` | Go | P3 | Compare trust stores across Linux hosts and images: system bundles (`/etc/ssl/certs`, `/etc/pki/ca-trust`), Java `cacerts`, Python `certifi`, Node and Go embedded bundles found in a filesystem or container image tree; reports which private/enterprise roots are missing where (the cause of "works on one server, fails in the container"), roots present in one bundle but distrusted upstream, expired roots and duplicate subjects with different keys; offline, JSON output. | M |
 
 ## Done
 
@@ -69,6 +70,7 @@ All P1 items of the initial backlog are done.
 | 6 | [`lldp-mapper`](tools/lldp-mapper/) | Python | 0.1.0 | 2026-10-28 |
 | 7 | [`subnet-planner`](tools/subnet-planner/) | Go | 0.1.0 | 2026-10-30 |
 | 8 | [`syslog-triage`](tools/syslog-triage/) | Go | 0.1.0 | 2026-11-13 |
+| 9 | [`cert-inventory`](tools/cert-inventory/) | PowerShell | 0.1.0 | 2026-11-18 |
 
 `dnsdoctor` — end-to-end DNS diagnostics: iterative resolution from the root,
 lame delegations, parent/child NS consistency, SOA serial drift between
@@ -121,6 +123,14 @@ masking of addresses and numbers, per-pattern and overall spike detection
 on a robust median/MAD baseline (sustained bursts reported as level
 shifts), new patterns against a persistent model or within a recent
 window; Nagios exit codes, text and JSON.
+
+`cert-inventory` — Windows machine certificate stores over WinRM (or offline
+collections): expiry with renewal awareness (renewed but not rebound,
+expired but still bound, superseded), HTTP.sys/RDP/WinRM bindings to missing
+certificates or certificates without a private key, exportable private keys
+(CNG/CAPI, TPM and smart card recognised), weak keys and signatures, missing
+SAN, ADCS template inventory, the same key on several hosts; text, JSON and
+CSV output, Nagios exit codes.
 
 `sysnet-presence` — out-of-backlog addition requested by the owner: Discord
 Rich Presence wrapper showing the running toolbox tool with the logo.

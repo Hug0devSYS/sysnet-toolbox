@@ -85,14 +85,25 @@
       ],
       "result": "success",
       "notes": "syslog-triage 0.1.0 built with the Go standard library only (module proxy still unreachable): gofmt/vet/test -race pass (parsers for RFC 3164/3339/5424, Cisco and journald JSON, masking, Drain, model round trip, spike detector, CLI with fake journalctl). Scale check: 1.04M syslog lines analysed in 2.4s. Design decisions: one Drain partition per program by default; model parameters take precedence over flags; first --update-model run reports nothing as new; patterns without severity always alert. sysnet-presence maintenance (0.1.1): negative sleep crash in --hold, inf/nan durations, SIGTERM/SIGHUP forwarding, descriptions for all tools, tool name through sudo/env/timeout and interpreters without leaking script names; ruff and 43 pytest tests pass on Python 3.13. Next run: new tool cert-inventory (P2 #9, PowerShell) + maintenance of dnsdoctor (oldest, 2026-10-21)."
+    },
+    {
+      "date": "2026-11-18",
+      "mode": "new-tool+maintenance",
+      "tools_touched": [
+        "cert-inventory",
+        "dnsdoctor",
+        "sysnet-presence"
+      ],
+      "result": "success",
+      "notes": "cert-inventory 0.1.0 (PowerShell, no dependencies). PowerShell 7.4.6 installed from GitHub releases; PSGallery and nuget.org blocked by the sandbox egress, so PSScriptAnalyzer 1.23.0 came from its GitHub release and Pester 5.6.1 was built from source (C# compiled with Add-Type). PSScriptAnalyzer clean, 87 Pester tests pass on Linux (real certificates generated with CertificateRequest, registry/CIM/WinRM mocked, CLI end to end); 3 Windows integration tests (real LocalMachine\\\\My certificates, collector under PowerShell 7 and Windows PowerShell 5.1) are skipped locally and run in CI on windows-latest. Design decisions: unreachable hosts give UNKNOWN (3) unless something is critical; trust-store expiries are summarised per store as info; a renewal is a valid certificate in the same store with the same subject (and template when known). dnsdoctor maintenance (0.1.2): signal handling, --sig-warn NaN/Inf/overflow, --color validation, duplicate zones, [] instead of null; gofmt/vet/test -race pass, SIGINT verified against a local UDP black hole. sysnet-presence 0.1.2: cert-inventory description and pwsh/powershell launcher (required by its every-tool test); ruff and 45 pytest tests pass. Next run: new tool ntp-skew (P3 #10, Go) + maintenance of tlsaudit (oldest, 2026-10-23)."
     }
   ],
   "tools": {
     "dnsdoctor": {
       "language": "Go",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "created": "2026-10-09",
-      "last_maintenance": "2026-10-21"
+      "last_maintenance": "2026-11-18"
     },
     "tlsaudit": {
       "language": "Go",
@@ -114,9 +125,9 @@
     },
     "sysnet-presence": {
       "language": "Python",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "created": "2026-10-21",
-      "last_maintenance": "2026-11-13",
+      "last_maintenance": "2026-11-18",
       "path": "tools/discord-presence"
     },
     "pmtud-probe": {
@@ -142,6 +153,12 @@
       "version": "0.1.0",
       "created": "2026-11-13",
       "last_maintenance": "2026-11-13"
+    },
+    "cert-inventory": {
+      "language": "PowerShell",
+      "version": "0.1.0",
+      "created": "2026-11-18",
+      "last_maintenance": "2026-11-18"
     }
   }
 }

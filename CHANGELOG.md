@@ -7,6 +7,55 @@ and each tool is versioned independently following
 
 ## [Unreleased]
 
+## 2026-11-18
+
+### Added
+
+- **cert-inventory 0.1.0** (PowerShell, no module dependencies): inventory
+  and audit of Windows machine certificate stores.
+  - Collector sent with `Invoke-Command -FilePath` (Windows PowerShell 5.1
+    compatible, read-only): LocalMachine stores opened `ReadOnly |
+    OpenExistingOnly`, built-in DER parser for SubjectAltName (DNS, IP, UPN),
+    ADCS v1/v2 template extensions, ECC curves and DSA sizes; private key
+    export policy read from CNG `ExportPolicy` or CAPI `CspKeyContainerInfo`
+    with TPM, smart card and third-party KSP storage recognised;
+    `-SkipKeyInspection` to never open keys.
+  - Bindings from HTTP.sys IP and SNI registry keys, the RDP listener (CIM)
+    and WinRM HTTPS listeners, so expiry is judged on use: renewed but not
+    rebound, expired but still bound, superseded, missing or keyless bound
+    certificates.
+  - Weak keys (RSA, DSA, small curves), MD5/SHA-1 signatures, server
+    certificates without SAN, exportable keys (`-AllowExportable` patterns),
+    self-signed certificates on HTTP.sys/WinRM, expired trust anchors
+    summarised per store, the same certificate and key on several hosts,
+    per-template counts.
+  - WinRM fan-out with throttling, timeouts, HTTPS, explicit credentials and
+    per-host error attribution; host lists as text or AD CSV exports;
+    `-CollectOnly` / `-InputPath` for offline analysis on any OS with
+    PowerShell 7, with stale-collection detection.
+  - Text (control characters escaped), JSON (ISO 8601 dates on 5.1 and 7)
+    and CSV (formula-injection safe) output; Nagios exit codes.
+
+### Fixed
+
+- **dnsdoctor 0.1.2**: SIGINT/SIGTERM killed the process without output; the
+  current zone is now reported as incomplete, remaining zones are listed on
+  stderr, `--json` still emits a valid document and the exit code is 3.
+- **dnsdoctor 0.1.2**: `--sig-warn` accepted `NaNd`, `Infd` and values that
+  overflowed the duration type.
+- **dnsdoctor 0.1.2**: an invalid `--color` value was silently treated as
+  `never`; it is now a usage error.
+- **dnsdoctor 0.1.2**: `--json` printed `null` instead of `[]` when no zone
+  was checked.
+
+### Changed
+
+- **dnsdoctor 0.1.2**: a zone given several times (any case, with or without
+  the trailing dot) is checked once.
+- **sysnet-presence 0.1.2**: description for `cert-inventory`, and the tool
+  name is recognised through `pwsh`/`powershell` (`pwsh -File
+  ./cert-inventory.ps1`) without revealing other script names.
+
 ## 2026-11-13
 
 ### Added
