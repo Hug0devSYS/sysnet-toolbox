@@ -197,6 +197,15 @@ function New-CollectorSessionOption {
     return New-PSSessionOption -OpenTimeout $ms -OperationTimeout $ms -CancelTimeout 10000 -NoMachineProfile
 }
 
+function Invoke-RemoteCollector {
+    <# Runs Invoke-Command and returns its output and non-terminating errors together (one connection failure must not stop the others). #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [hashtable] $Parameters)
+    $errs = $null
+    $res = @(Invoke-Command @Parameters -ErrorAction SilentlyContinue -ErrorVariable errs)
+    return [pscustomobject]@{ Results = $res; Errors = @($errs | Where-Object { $null -ne $_ }) }
+}
+
 function Invoke-CertInventoryCollection {
     <#
     .SYNOPSIS
@@ -253,16 +262,15 @@ function Invoke-CertInventoryCollection {
             ArgumentList  = $argList
             SessionOption = $sessionOption
             ThrottleLimit = $ThrottleLimit
-            ErrorAction   = 'SilentlyContinue'
-            ErrorVariable = 'remoteErrors'
         }
         if ($Credential) { $params.Credential = $Credential }
         if ($UseSSL) { $params.UseSSL = $true }
         if ($Port -gt 0) { $params.Port = $Port }
         if ($Authentication -ne 'Default') { $params.Authentication = $Authentication }
 
-        $remoteErrors = @()
-        $results = @(Invoke-Command @params)
+        $call = Invoke-RemoteCollector -Parameters $params
+        $results = @($call.Results)
+        $remoteErrors = @($call.Errors)
         $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
         foreach ($r in $results) {
             if ($null -eq $r -or -not $r.PSObject.Properties['Certificates']) { continue }

@@ -376,22 +376,22 @@ Describe 'Invoke-CertInventoryCollection (WinRM orchestration)' {
     It 'passes WinRM options, deduplicates targets and maps errors to hosts' {
         Mock -ModuleName CertInventory Test-WinRmSupported { $true }
         Mock -ModuleName CertInventory New-CollectorSessionOption { $script:sessionOption }
-        Mock -ModuleName CertInventory Invoke-Command {
+        Mock -ModuleName CertInventory Invoke-RemoteCollector {
             $o = New-TestHost -Name 'WEB01'
             $o | Add-Member -NotePropertyName PSComputerName -NotePropertyValue 'web01' -Force
-            $o
             $err = New-Object System.Management.Automation.ErrorRecord (
                 (New-Object System.Exception 'Connecting to remote server db01 failed: WinRM cannot complete the operation.'),
                 'CannotConnect,PSSessionStateBroken', 'OpenError', 'db01')
-            Write-Error -ErrorRecord $err
+            [pscustomobject]@{ Results = @($o); Errors = @($err) }
         }
         $cred = New-Object System.Management.Automation.PSCredential ('CORP\audit', (New-Object System.Security.SecureString))
         $r = Invoke-CertInventoryCollection -ComputerName 'web01', 'WEB01', 'db01', 'app01' -Credential $cred -UseSSL -Port 5986 -Authentication Kerberos -ThrottleLimit 8 -TimeoutSeconds 30 -StoreName 'My' -SkipKeyInspection
 
-        Should -Invoke -ModuleName CertInventory Invoke-Command -Times 1 -Exactly -ParameterFilter {
-            ($ComputerName -join ',') -eq 'web01,db01,app01' -and $UseSSL -and $Port -eq 5986 -and $Authentication -eq 'Kerberos' -and
-            $ThrottleLimit -eq 8 -and $Credential.UserName -eq 'CORP\audit' -and $FilePath -like '*Collector.ps1' -and
-            ($ArgumentList[0] -join ',') -eq 'My' -and $ArgumentList[1] -eq $false
+        Should -Invoke -ModuleName CertInventory Invoke-RemoteCollector -Times 1 -Exactly -ParameterFilter {
+            $p = $Parameters
+            ($p.ComputerName -join ',') -eq 'web01,db01,app01' -and $p.UseSSL -and $p.Port -eq 5986 -and $p.Authentication -eq 'Kerberos' -and
+            $p.ThrottleLimit -eq 8 -and $p.Credential.UserName -eq 'CORP\audit' -and $p.FilePath -like '*Collector.ps1' -and
+            ($p.ArgumentList[0] -join ',') -eq 'My' -and $p.ArgumentList[1] -eq $false
         }
         Should -Invoke -ModuleName CertInventory New-CollectorSessionOption -Times 1 -Exactly -ParameterFilter { $TimeoutSeconds -eq 30 }
         @($r.Hosts).Count | Should -Be 1
@@ -402,9 +402,9 @@ Describe 'Invoke-CertInventoryCollection (WinRM orchestration)' {
     }
 
     It 'collects the local computer without WinRM (or fails cleanly off Windows)' {
-        Mock -ModuleName CertInventory Invoke-Command { throw 'should not be called' }
+        Mock -ModuleName CertInventory Invoke-RemoteCollector { throw 'should not be called' }
         $r = Invoke-CertInventoryCollection -ComputerName 'localhost'
-        Should -Invoke -ModuleName CertInventory Invoke-Command -Times 0
+        Should -Invoke -ModuleName CertInventory Invoke-RemoteCollector -Times 0
         if (-not $IsWindows) {
             $r.Failures[0].Error | Should -Be 'local collection requires Windows'
         }
@@ -412,7 +412,7 @@ Describe 'Invoke-CertInventoryCollection (WinRM orchestration)' {
 
     It 'reports remote targets as failed where WinRM is unavailable' {
         Mock -ModuleName CertInventory Test-WinRmSupported { $false }
-        Mock -ModuleName CertInventory Invoke-Command { throw 'should not be called' }
+        Mock -ModuleName CertInventory Invoke-RemoteCollector { throw 'should not be called' }
         $r = Invoke-CertInventoryCollection -ComputerName 'web01', 'web02'
         @($r.Failures).Count | Should -Be 2
         $r.Failures[0].Error | Should -Match 'requires Windows'
