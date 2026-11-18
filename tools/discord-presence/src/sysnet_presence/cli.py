@@ -30,6 +30,7 @@ TOOLS = {
     "lldp-mapper": "Layer-2 topology discovery",
     "subnet-planner": "IP address planning",
     "syslog-triage": "Log pattern triage",
+    "cert-inventory": "Certificate store audit",
 }
 
 # Launchers skipped when naming the tool: "sudo nftlint --live" is nftlint.
@@ -45,7 +46,7 @@ WRAPPERS = {
     "time": {"-f", "-o"},
     "nohup": set(),
 }
-INTERPRETERS = {"python", "python3", "pypy3", "uv", "uvx", "pipx", "go"}
+INTERPRETERS = {"python", "python3", "pypy3", "uv", "uvx", "pipx", "go", "pwsh", "powershell"}
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$")
 
 DESCRIPTION = """\

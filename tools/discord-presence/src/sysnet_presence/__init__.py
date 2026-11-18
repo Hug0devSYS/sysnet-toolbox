@@ -1,3 +1,3 @@
 """Discord Rich Presence for sysnet-toolbox tools."""
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"

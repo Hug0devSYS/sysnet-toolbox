@@ -162,6 +162,8 @@ def test_usage_errors(capsys):
         (["pipx", "run", "--spec", "x", "nftlint"], "nftlint"),
         (["go", "run", "./tools/subnet-planner/", "info"], "subnet-planner"),
         (["go", "run", "."], "go"),
+        (["pwsh", "-NoProfile", "-File", "./cert-inventory.ps1", "web01"], "cert-inventory"),
+        (["powershell.exe", "-File", "C:\\audit\\private-script.ps1"], "powershell"),
         (["sudo"], "sudo"),
         (["sudo", "-u"], "sudo"),
         (["./weird name;rm"], "command"),

@@ -107,7 +107,7 @@ The name is found through common launchers: `sudo -E nftlint --live`,
 `env SNMP_COMMUNITY=... lldp-mapper`, `timeout 30 pmtud-probe`,
 `nice -n 10 syslog-triage` show the tool, not the launcher. Through an
 interpreter (`python3 -m lldp_mapper`, `uv run netcfg-diff`,
-`go run ./tools/subnet-planner`) only a known toolbox tool is named;
+`go run ./tools/subnet-planner`, `pwsh -File ./cert-inventory.ps1`) only a known toolbox tool is named;
 anything else (`python3 script.py`, `python3 -c ...`) shows the interpreter,
 so script names and inline code stay private.
 
