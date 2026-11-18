@@ -100,6 +100,7 @@ func TestUsageErrors(t *testing.T) {
 		{"--trust-anchor", "/nonexistent/anchors", "example.test."},
 		{"--timeout", "0s", "example.test."},
 		{"--bogus-flag"},
+		{"--color", "sometimes", "example.test."},
 	} {
 		if code, _, _ := run(t, n, args...); code != ExitUnknown {
 			t.Errorf("%v: exit %d, want %d", args, code, ExitUnknown)
@@ -120,7 +121,7 @@ func TestParseDuration(t *testing.T) {
 			t.Errorf("ParseDuration(%q) = %v, %v", in, got, err)
 		}
 	}
-	for _, bad := range []string{"", "-1d", "xd", "-5h"} {
+	for _, bad := range []string{"", "-1d", "xd", "-5h", "NaNd", "Infd", "+Infd", "200000d"} {
 		if _, err := ParseDuration(bad); err == nil {
 			t.Errorf("ParseDuration(%q) accepted", bad)
 		}
@@ -128,3 +129,46 @@ func TestParseDuration(t *testing.T) {
 }
 
 func mustAddr(s string) netip.Addr { return netip.MustParseAddr(s) }
+
+func TestDuplicateZonesCheckedOnce(t *testing.T) {
+	n, anchors := world(t, fakedns.Normal)
+	code, out, stderr := run(t, n, "--json", "--roots", "192.0.2.1", "--trust-anchor", anchors,
+		"example.test", "EXAMPLE.test.", "example.TEST")
+	if code != ExitOK {
+		t.Fatalf("exit %d, stderr=%s", code, stderr)
+	}
+	var reps []struct {
+		Zone string `json:"zone"`
+	}
+	if err := json.Unmarshal([]byte(out), &reps); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	if len(reps) != 1 {
+		t.Fatalf("got %d reports, want 1", len(reps))
+	}
+	if got := uniqueZones([]string{"b.", "A", "a.", "b", "c"}); strings.Join(got, ",") != "b.,A,c" {
+		t.Fatalf("uniqueZones = %v", got)
+	}
+}
+
+func TestInterruptedRunStillReports(t *testing.T) {
+	n, anchors := world(t, fakedns.Normal)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // as if SIGINT arrived before the first zone
+	var out, errb bytes.Buffer
+	code := Run(ctx, []string{"--json", "--roots", "192.0.2.1", "--trust-anchor", anchors, "example.test.", "other.test."}, &out, &errb, n)
+	if code != ExitUnknown {
+		t.Fatalf("exit %d, want %d", code, ExitUnknown)
+	}
+	if !strings.Contains(errb.String(), "interrupted, 2 zone(s) not checked: example.test. other.test.") {
+		t.Fatalf("stderr = %q", errb.String())
+	}
+	// The JSON document is still well-formed (an empty array, not null).
+	if strings.TrimSpace(out.String()) != "[]" {
+		t.Fatalf("JSON after interruption = %q, want []", out.String())
+	}
+	var reps []json.RawMessage
+	if err := json.Unmarshal(out.Bytes(), &reps); err != nil || len(reps) != 0 {
+		t.Fatalf("JSON after interruption: %v %q", err, out.String())
+	}
+}

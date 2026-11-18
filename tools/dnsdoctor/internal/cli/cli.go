@@ -8,18 +8,20 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"net/netip"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/Hug0devSYS/sysnet-toolbox/tools/dnsdoctor/internal/dnswire"
 	"github.com/Hug0devSYS/sysnet-toolbox/tools/dnsdoctor/internal/doctor"
 	"github.com/Hug0devSYS/sysnet-toolbox/tools/dnsdoctor/internal/transport"
 )
 
 // Version is overridden at build time with -ldflags "-X .../cli.Version=x.y.z".
-var Version = "0.1.1"
+var Version = "0.1.2"
 
 // Exit codes (Nagios/Icinga compatible).
 const (
@@ -114,6 +116,13 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer, x transpo
 		fmt.Fprintln(stderr, "dnsdoctor: missing <zone> argument (see --help)")
 		return ExitUnknown
 	}
+	switch cfg.color {
+	case "auto", "always", "never":
+	default:
+		fmt.Fprintf(stderr, "dnsdoctor: --color must be auto, always or never (got %q)\n", cfg.color)
+		return ExitUnknown
+	}
+	zones = uniqueZones(zones)
 	if cfg.ipv4 && cfg.ipv6 {
 		fmt.Fprintln(stderr, "dnsdoctor: -4 and -6 are mutually exclusive")
 		return ExitUnknown
@@ -161,8 +170,14 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer, x transpo
 
 	color := cfg.color == "always" || (cfg.color == "auto" && isTerminal(stdout) && os.Getenv("NO_COLOR") == "")
 	exit := ExitOK
-	var reports []*doctor.Report
-	for _, z := range zones {
+	reports := []*doctor.Report{}
+	for i, z := range zones {
+		if ctx.Err() != nil {
+			// Interrupted (SIGINT/SIGTERM): report what was done, skip the rest.
+			fmt.Fprintf(stderr, "dnsdoctor: interrupted, %d zone(s) not checked: %s\n", len(zones)-i, strings.Join(zones[i:], " "))
+			exit = ExitUnknown
+			break
+		}
 		r := doctor.NewResolver(x)
 		r.Port = uint16(cfg.port)
 		if roots != nil {
@@ -217,6 +232,22 @@ func exitFor(rep *doctor.Report, err error) int {
 	return ExitOK
 }
 
+// uniqueZones drops repeated zones, compared in canonical form (case and
+// trailing dot do not matter), keeping the first spelling and the order.
+func uniqueZones(zones []string) []string {
+	seen := make(map[string]bool, len(zones))
+	out := make([]string, 0, len(zones))
+	for _, z := range zones {
+		k := dnswire.CanonicalName(z)
+		if seen[k] {
+			continue
+		}
+		seen[k] = true
+		out = append(out, z)
+	}
+	return out
+}
+
 // parseInterleaved allows flags after positional arguments.
 func parseInterleaved(fs *flag.FlagSet, args []string) ([]string, error) {
 	var pos []string
@@ -244,7 +275,9 @@ func ParseDuration(s string) (time.Duration, error) {
 	}
 	if strings.HasSuffix(s, "d") {
 		n, err := strconv.ParseFloat(strings.TrimSuffix(s, "d"), 64)
-		if err != nil || n < 0 {
+		// ParseFloat accepts "NaN" and "Inf"; reject them and values that
+		// overflow time.Duration (~292 years) instead of wrapping around.
+		if err != nil || n < 0 || math.IsNaN(n) || math.IsInf(n, 0) || n*float64(24*time.Hour) >= math.MaxInt64 {
 			return 0, fmt.Errorf("invalid duration %q", s)
 		}
 		return time.Duration(n * float64(24*time.Hour)), nil

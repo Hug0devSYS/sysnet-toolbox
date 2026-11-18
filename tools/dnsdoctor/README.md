@@ -33,7 +33,7 @@ go install github.com/Hug0devSYS/sysnet-toolbox/tools/dnsdoctor@latest
 
 # or from a checkout
 cd tools/dnsdoctor
-go build -trimpath -ldflags "-s -w -X github.com/Hug0devSYS/sysnet-toolbox/tools/dnsdoctor/internal/cli.Version=0.1.1" -o dnsdoctor .
+go build -trimpath -ldflags "-s -w -X github.com/Hug0devSYS/sysnet-toolbox/tools/dnsdoctor/internal/cli.Version=0.1.2" -o dnsdoctor .
 
 # static cross-compilation, e.g. for a jump host
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -o dnsdoctor-linux-arm64 .
@@ -61,6 +61,8 @@ dnsdoctor [flags] <zone> [<zone>...]
 ```
 
 Flags may appear before or after zone names; both `-json` and `--json` work.
+A zone given several times (in any letter case, with or without the
+trailing dot) is checked once.
 
 ### Exit codes (Nagios/Icinga compatible)
 
@@ -69,9 +71,14 @@ Flags may appear before or after zone names; both `-json` and `--json` work.
 | 0 | OK — no warnings or errors |
 | 1 | WARNING — at least one warning (NS mismatch, serial drift, expiring signatures, ...) |
 | 2 | CRITICAL — at least one error (lame server, bogus DNSSEC, NXDOMAIN, not a zone apex, ...) |
-| 3 | UNKNOWN — usage error, or the diagnosis could not be completed (no network, all roots unreachable) |
+| 3 | UNKNOWN — usage error, or the diagnosis could not be completed (no network, all roots unreachable, interrupted) |
 
 With several zones the highest code wins.
+
+SIGINT (Ctrl-C) or SIGTERM stops the run cleanly: the zone being checked is
+reported as incomplete, the remaining zones are listed on stderr as not
+checked, the text or JSON output written so far stays valid (`-json` always
+emits an array), and the exit code is 3.
 
 ### Examples
 

@@ -9,10 +9,17 @@ package main
 import (
 	"context"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/Hug0devSYS/sysnet-toolbox/tools/dnsdoctor/internal/cli"
 )
 
 func main() {
-	os.Exit(cli.Run(context.Background(), os.Args[1:], os.Stdout, os.Stderr, nil))
+	// SIGINT/SIGTERM cancel the running diagnosis: the reports gathered so
+	// far are still printed (or encoded as JSON) and the exit code is 3.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	code := cli.Run(ctx, os.Args[1:], os.Stdout, os.Stderr, nil)
+	stop()
+	os.Exit(code)
 }
