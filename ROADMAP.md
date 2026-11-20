@@ -20,7 +20,6 @@ All P2 items of the initial backlog are done.
 
 | # | Tool | Language | Problem solved | Effort |
 |---|------|----------|----------------|--------|
-| 10 | `ntp-skew` | Go | Offset/stratum of several NTP sources, falseticker detection. | S |
 | 11 | `rogue-dhcp` | Python | Passive listening for DHCP offers, alert on any unauthorised server. | S |
 | 12 | `disk-forecast` | Bash | Forecast filesystem saturation by regression over `df` history; cron/Nagios output. | S |
 | 13 | `bgp-sanity` | Python | RPKI/ROA validity, IRR consistency and global visibility of announced prefixes via RIPEstat. | M |
@@ -56,6 +55,10 @@ All P2 items of the initial backlog are done.
 | `link-health` | Python | P2 | Physical link triage over SNMP for every cable found by `lldp-mapper`: IF-MIB/EtherLike-MIB counter deltas between two polls (CRC/FCS and alignment errors, input errors, discards, late collisions), links that flapped since the last run (`ifLastChange`), MTU and speed mismatches between both ends of a link, half-duplex ports and error rates normalised per packet so a busy uplink and an idle access port compare fairly; persistent state file for deltas, text/JSON, Nagios and Prometheus textfile output. Read-only (SNMP GET/GETBULK). | M |
 | `dualstack-check` | Go | P2 | IPv6 parity of published services: for each name (or a zone/list), compare the IPv4 and IPv6 paths end to end — A vs AAAA present, both addresses reachable on the service port, same TLS certificate and HTTP status/redirect target on both families, PTR and forward-confirmed reverse DNS for each address, path MTU sanity (reuses `pmtud-probe`), RTT difference; reports services that are silently broken or degraded over IPv6 (the failure Happy Eyeballs hides from most users). | M |
 | `trust-diff` | Go | P3 | Compare trust stores across Linux hosts and images: system bundles (`/etc/ssl/certs`, `/etc/pki/ca-trust`), Java `cacerts`, Python `certifi`, Node and Go embedded bundles found in a filesystem or container image tree; reports which private/enterprise roots are missing where (the cause of "works on one server, fails in the container"), roots present in one bundle but distrusted upstream, expired roots and duplicate subjects with different keys; offline, JSON output. | M |
+| `ad-time-audit` | PowerShell | P2 | Audit the Active Directory time hierarchy (read-only, w32tm and registry over WinRM): the PDC emulator of the forest root syncs from reliable external sources (`NtpServer` flags, `Type=NTP`) while every other DC and member uses `NT5DS`, virtualised DCs with the Hyper-V/VMware time provider still enabled (the classic DC clock jump), `AnnounceFlags`/`ReliableTimeSource` misplaced, `MaxPos/NegPhaseCorrection` left at "unlimited", hosts drifting towards the 5-minute Kerberos skew limit; measures each DC with `ntp-skew`'s logic. | M |
+| `ptp-watch` | Go | P3 | IEEE 1588 PTP health for linuxptp hosts without privileges beyond the `pmc` UDS socket: grandmaster identity and changes, clock class/accuracy, offset from master and mean path delay against thresholds, port states (FAULTY, LISTENING too long), `phc2sys` lag between the PHC and the system clock, BMCA flapping between grandmasters; Nagios and Prometheus textfile output. Complements `ntp-skew` for sub-microsecond time. | M |
+| `nic-audit` | Bash | P3 | Server NIC sanity across Linux hosts without dependencies (`ethtool`, `/sys/class/net`): negotiated speed below capability, half duplex, rx/tx ring buffers far below their maximum, rising `rx_missed`/`rx_no_buffer`/`fifo` errors and drops, offloads (GRO/TSO/LRO) inconsistent between bond members, outdated driver/firmware versions compared with a fleet baseline, IRQ affinity all on one CPU; Nagios output and JSON for fleet comparison. Complements `bond-check` and `link-health`. | S |
+
 
 ## Done
 
@@ -71,6 +74,7 @@ All P2 items of the initial backlog are done.
 | 7 | [`subnet-planner`](tools/subnet-planner/) | Go | 0.1.0 | 2026-10-30 |
 | 8 | [`syslog-triage`](tools/syslog-triage/) | Go | 0.1.0 | 2026-11-13 |
 | 9 | [`cert-inventory`](tools/cert-inventory/) | PowerShell | 0.1.0 | 2026-11-18 |
+| 10 | [`ntp-skew`](tools/ntp-skew/) | Go | 0.1.0 | 2026-11-20 |
 
 `dnsdoctor` — end-to-end DNS diagnostics: iterative resolution from the root,
 lame delegations, parent/child NS consistency, SOA serial drift between
@@ -131,6 +135,15 @@ certificates or certificates without a private key, exportable private keys
 (CNG/CAPI, TPM and smart card recognised), weak keys and signatures, missing
 SAN, ADCS template inventory, the same key on several hosts; text, JSON and
 CSV output, Nagios exit codes.
+
+`ntp-skew` — NTP source comparison: NTPv4 client exchanges with a random
+transmit cookie and a monotonic round trip, RFC 5905 clock filter and root
+distance, truechimers and falsetickers with the intersection algorithm
+(ntpd 4.2.8 variant), local clock offset against the weighted consensus;
+unreachable, rate-limiting (kiss-o'-death) and unsynchronised servers,
+stale or undisciplined references, inconsistent timestamps, sync loops,
+no upstream diversity, leap disagreement; servers from chrony/ntpd/
+timesyncd configurations and w32time peer lists; text, JSON, Prometheus.
 
 `sysnet-presence` — out-of-backlog addition requested by the owner: Discord
 Rich Presence wrapper showing the running toolbox tool with the logo.

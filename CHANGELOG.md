@@ -7,6 +7,55 @@ and each tool is versioned independently following
 
 ## [Unreleased]
 
+## 2026-11-20
+
+### Added
+
+- **ntp-skew 0.1.0** (Go, standard library only): NTP source comparison and
+  falseticker detection.
+  - NTPv4 client-mode requests carrying only a random 64-bit transmit
+    cookie (RFC 9109 data minimisation) on a connected socket; answers must
+    echo it, spoofed/replayed/late datagrams are ignored and counted; round
+    trip measured on the monotonic clock; NTP era handling (2036 rollover).
+  - Several exchanges per server, lowest-delay sample kept (clock filter),
+    jitter, dispersion and root distance as in RFC 5905.
+  - Intersection algorithm as implemented by ntpd 4.2.8 (the RFC 5905
+    pseudo-code's midpoint test wrongly rejects correct servers with narrow
+    intervals), weighted consensus, local clock offset with `--warn` /
+    `--crit`, optional `--max-skew` per truechimer.
+  - Kiss-o'-death handling (stop at the first one; RATE vs DENY/RSTR),
+    stratum 0 without kiss code / INIT / STEP and leap indicator 3 reported
+    as unsynchronised, root distance above 1.5 s, stale reference
+    timestamps, undisciplined local clocks (refid 127.127.1.1), processing
+    time longer than the round trip, servers synchronised to each other or
+    to this host (IPv4 and MD5-based IPv6 refids), every source behind one
+    upstream, leap indicator disagreement, partial answers (rate limiting
+    or loss).
+  - Servers from arguments, lists, `--config` (chrony, ntpd, ntpsec,
+    systemd-timesyncd, `w32tm /query /peers`, `NtpServer` registry value)
+    or `--system`; pools expand to every address, other names to one.
+  - Text (escaped server strings), JSON, Prometheus textfile (atomic, left
+    untouched on interruption); Nagios exit codes.
+  - `lab/chrony-lab.sh`: interoperability run against real chronyd
+    instances (one shifted with libfaketime, one rate-limiting, one
+    unsynchronised), never touching the system clock.
+
+### Fixed
+
+- **tlsaudit 0.1.2**: the lifetime check for publicly trusted certificates
+  used a fixed 398-day limit; it now applies the CA/Browser Forum ballot
+  SC-081 schedule by issuance date (200 days from 2026-03-15, 100 from
+  2027-03-15, 47 from 2029-03-15).
+- **tlsaudit 0.1.2**: certificates expiring or expired within a day were
+  reported as "0 day(s)"; the remaining hours and the UTC time are shown.
+- **tlsaudit 0.1.2**: an unwritable `--prom-file` directory was only
+  detected after the whole audit; it is checked before any connection.
+
+### Changed
+
+- **tlsaudit 0.1.2**: `sni=` rejects wildcard names.
+- **sysnet-presence 0.1.3**: description for `ntp-skew`.
+
 ## 2026-11-18
 
 ### Added

@@ -25,7 +25,7 @@ Every tool in this repository follows the same rules:
 | Tool | Language | Description | Status |
 |------|----------|-------------|--------|
 | [dnsdoctor](tools/dnsdoctor/) | Go | End-to-end DNS zone diagnostics: iterative walk from the root, parent/child NS consistency, glue, lame delegations, SOA serial drift, DNSSEC chain of trust. | Beta (v0.1.2) |
-| [tlsaudit](tools/tlsaudit/) | Go | TLS fleet audit: expiry, incomplete/untrusted chains, SAN mismatch, SSLv3–TLS 1.3, full cipher suite enumeration, DHE strength, OCSP stapling, STARTTLS; text/JSON/summary output and Prometheus textfile metrics. | Beta (v0.1.1) |
+| [tlsaudit](tools/tlsaudit/) | Go | TLS fleet audit: expiry, incomplete/untrusted chains, SAN mismatch, SSLv3–TLS 1.3, full cipher suite enumeration, DHE strength, OCSP stapling, STARTTLS; text/JSON/summary output and Prometheus textfile metrics. | Beta (v0.1.2) |
 | [nftlint](tools/nftlint/) | Python | nftables / iptables-save static analysis: shadowed, redundant and unreachable rules, any-any accepts, permissive policies, missing IPv6 filtering; correlates `ss` listening sockets with the input path to show what is really reachable and from which sources. | Beta (v0.1.1) |
 | [netcfg-diff](tools/netcfg-diff/) | Python | Semantic diff of Cisco IOS/IOS-XE/NX-OS/IOS-XR/EOS, Junos (brace or set) and FortiOS configurations: hierarchical, order-aware (ACLs, firewall policies, policy chains), modifications instead of remove+add, secrets masked; text/JSON/summary and Junos set/delete/insert output, directory mode for backup trees. | Beta (v0.1.1) |
 | [pmtud-probe](tools/pmtud-probe/) | Go | Path MTU discovery for IPv4/IPv6 without privileges: PMTUD black-hole detection (silent drops vs ICMP fragmentation-needed / packet-too-big), broken ICMP, TCP MSS clamping check; text/JSON output, Nagios exit codes. | Beta (v0.1.0) |
@@ -33,7 +33,8 @@ Every tool in this repository follows the same rules:
 | [subnet-planner](tools/subnet-planner/) | Go | IPv4/IPv6 VLSM planning around the space already used in a NetBox/CSV export (NetBox-importable output), IPAM conflict checks (duplicate/nested prefixes, duplicate/orphan addresses, mask mismatches per VRF), exact or bounded route aggregation with Cisco/Junos prefix-lists, free space, subnet calculator. | Beta (v0.1.0) |
 | [syslog-triage](tools/syslog-triage/) | Go | Syslog/journald triage: clusters messages into templates (Drain) with address/number masking, detects per-pattern and overall volume spikes on a robust baseline, reports never-seen patterns against a persistent model; RFC 3164/3339/5424, Cisco %FAC-SEV-MNEMONIC, `journalctl -o json`, gzip; Nagios exit codes, JSON. | Beta (v0.1.0) |
 | [cert-inventory](tools/cert-inventory/) | PowerShell | Windows certificate store inventory over WinRM: expiry with renewal awareness (renewed but not rebound, expired but still bound), broken HTTP.sys/RDP/WinRM bindings, exportable private keys (TPM/smart card aware), weak keys/signatures, missing SAN, ADCS templates, keys shared across hosts; text/JSON/CSV, offline analysis on any OS. | Beta (v0.1.0) |
-| [sysnet-presence](tools/discord-presence/) | Python | Optional Discord Rich Presence for the toolbox: `sysnet-presence -- <tool> ...` shows the running tool with the toolbox logo on your Discord profile (local IPC only, arguments never shown). | Beta (v0.1.2) |
+| [ntp-skew](tools/ntp-skew/) | Go | NTP source comparison: offset, delay, jitter and root distance per server, falseticker detection with the NTP intersection algorithm, local clock offset against the consensus, unsynchronised/rate-limiting servers, stale references, sync loops, no upstream diversity, leap disagreement; reads chrony/ntpd/timesyncd/w32time configs; text/JSON/Prometheus, Nagios exit codes. | Beta (v0.1.0) |
+| [sysnet-presence](tools/discord-presence/) | Python | Optional Discord Rich Presence for the toolbox: `sysnet-presence -- <tool> ...` shows the running tool with the toolbox logo on your Discord profile (local IPC only, arguments never shown). | Beta (v0.1.3) |
 
 Planned tools and their priority are tracked in [ROADMAP.md](ROADMAP.md).
 
@@ -68,6 +69,9 @@ subnet-planner check netbox-prefixes.csv netbox-ip-addresses.csv
 
 go install github.com/Hug0devSYS/sysnet-toolbox/tools/syslog-triage@latest
 syslog-triage --journal --since -6h --recent 15m --min-severity warning
+
+go install github.com/Hug0devSYS/sysnet-toolbox/tools/ntp-skew@latest
+ntp-skew --system --min-sources 3
 
 # Python tools
 pipx install "git+https://github.com/Hug0devSYS/sysnet-toolbox.git#subdirectory=tools/nftlint"
