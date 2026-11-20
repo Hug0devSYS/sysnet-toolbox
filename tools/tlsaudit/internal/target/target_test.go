@@ -40,7 +40,7 @@ func TestParse(t *testing.T) {
 func TestParseErrors(t *testing.T) {
 	for _, in := range []string{
 		"", "gopher://x", "example.com:0", "example.com:99999", "exa mple.com:x",
-		"bad_host!", "x sni=bad!name", "x starttls=xmpp", "x foo=bar", "x connect=", "https://u@h/path",
+		"bad_host!", "x sni=bad!name", "x sni=*.example.com", "x starttls=xmpp", "x foo=bar", "x connect=", "https://u@h/path",
 		"[not-ip]:443", "x novalue",
 	} {
 		if _, err := Parse(in); err == nil {

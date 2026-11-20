@@ -209,7 +209,9 @@ func TestCertificateProblems(t *testing.T) {
 		{"expired", testpki.Options{NotBefore: time.Now().Add(-100 * 24 * time.Hour), NotAfter: time.Now().Add(-2 * 24 * time.Hour)}, "www.example.test", CheckExpiry, SevError, "EXPIRED"},
 		{"mismatch", testpki.Options{}, "api.example.test", CheckHostname, SevError, `does not match "api.example.test"`},
 		{"weak-rsa", testpki.Options{RSABits: 1024}, "www.example.test", CheckCertificate, SevError, "weak RSA key"},
-		{"long-lived", testpki.Options{NotAfter: time.Now().Add(800 * 24 * time.Hour)}, "www.example.test", CheckCertificate, SevInfo, "398-day"},
+		{"long-lived", testpki.Options{NotAfter: time.Now().Add(800 * 24 * time.Hour)}, "www.example.test", CheckCertificate, SevInfo, "-day limit"},
+		{"200-day era", testpki.Options{NotBefore: time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC), NotAfter: time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC).Add(300 * 24 * time.Hour)}, "www.example.test", CheckCertificate, SevInfo, "exceeds the 200-day limit"},
+		{"hours left", testpki.Options{NotAfter: time.Now().Add(5*time.Hour + 30*time.Minute)}, "www.example.test", CheckExpiry, SevError, "expires in 5 hour(s)"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -357,5 +359,33 @@ func TestSummaryAndText(t *testing.T) {
 	WriteText(&b, r, true)
 	if !strings.Contains(b.String(), "\x1b[") || !strings.Contains(b.String(), "TLS1.3 ?") {
 		t.Fatal(b.String())
+	}
+}
+
+func TestMaxPublicValidity(t *testing.T) {
+	for _, c := range []struct {
+		date string
+		want int
+	}{
+		{"2025-06-01", 398}, {"2026-03-14", 398}, {"2026-03-15", 200}, {"2027-03-14", 200},
+		{"2027-03-15", 100}, {"2029-03-14", 100}, {"2029-03-15", 47}, {"2031-01-01", 47},
+	} {
+		d, _ := time.Parse("2006-01-02", c.date)
+		if got := maxPublicValidity(d); got != c.want {
+			t.Errorf("%s: %d, want %d", c.date, got, c.want)
+		}
+	}
+}
+
+func TestExpiryWhen(t *testing.T) {
+	for d, want := range map[time.Duration]string{
+		10 * time.Minute:            "less than an hour",
+		-3 * time.Hour:              "3 hour(s)",
+		26 * time.Hour:              "1 day(s)",
+		45*24*time.Hour + time.Hour: "45 day(s)",
+	} {
+		if got := expiryWhen(d); got != want {
+			t.Errorf("%v: %q, want %q", d, got, want)
+		}
 	}
 }

@@ -119,6 +119,8 @@ func TestUsageErrors(t *testing.T) {
 		{"-f", "/nonexistent/targets"},
 		{"bad target!"},
 		{"--bogus-flag"},
+		{"--prom-file", "/nonexistent/dir/tls.prom", "example.test"},
+		{"--prom-file", os.TempDir(), "example.test"},
 	} {
 		if code, _, _ := run(t, nil, args...); code != ExitUnknown {
 			t.Errorf("%v: exit %d, want %d", args, code, ExitUnknown)

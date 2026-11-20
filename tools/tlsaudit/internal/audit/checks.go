@@ -27,9 +27,37 @@ import (
 
 var oidTLSFeature = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 1, 24}
 
-// maxPublicValidity is the CA/Browser Forum maximum lifetime of publicly
-// trusted TLS certificates issued since 2020-09-01.
-const maxPublicValidity = 398 * 24 * time.Hour
+// maxPublicValidity returns the CA/Browser Forum maximum lifetime, in days,
+// of a publicly trusted TLS certificate issued at notBefore: 398 days since
+// 2020-09-01, then 200, 100 and 47 days from the dates of ballot SC-081.
+func maxPublicValidity(notBefore time.Time) int {
+	switch {
+	case notBefore.Before(time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)):
+		return 398
+	case notBefore.Before(time.Date(2027, 3, 15, 0, 0, 0, 0, time.UTC)):
+		return 200
+	case notBefore.Before(time.Date(2029, 3, 15, 0, 0, 0, 0, time.UTC)):
+		return 100
+	default:
+		return 47
+	}
+}
+
+// expiryWhen renders the time left (or elapsed) in days, or in hours when
+// it is less than a day, so "expires in 0 day(s)" never appears.
+func expiryWhen(d time.Duration) string {
+	if d < 0 {
+		d = -d
+	}
+	if d < 24*time.Hour {
+		h := int(d.Hours())
+		if h == 0 {
+			return "less than an hour"
+		}
+		return fmt.Sprintf("%d hour(s)", h)
+	}
+	return fmt.Sprintf("%d day(s)", int(d.Hours()/24))
+}
 
 func describe(c *x509.Certificate, now time.Time) CertInfo {
 	sum := sha256.Sum256(c.Raw)
@@ -106,11 +134,11 @@ func (a *Auditor) checkExpiry(rep *Report, c *x509.Certificate, what string, now
 	case now.Before(c.NotBefore):
 		rep.add(CheckExpiry, SevError, "%s is not yet valid (notBefore %s)", what, c.NotBefore.UTC().Format(time.RFC3339))
 	case now.After(c.NotAfter):
-		rep.add(CheckExpiry, SevError, "%s EXPIRED on %s (%d days ago)", what, c.NotAfter.UTC().Format("2006-01-02"), int(-days))
+		rep.add(CheckExpiry, SevError, "%s EXPIRED on %s (%s ago)", what, c.NotAfter.UTC().Format("2006-01-02 15:04 MST"), expiryWhen(c.NotAfter.Sub(now)))
 	case days < float64(a.Opts.CritDays):
-		rep.add(CheckExpiry, SevError, "%s expires in %d day(s) on %s", what, int(days), c.NotAfter.UTC().Format("2006-01-02"))
+		rep.add(CheckExpiry, SevError, "%s expires in %s on %s", what, expiryWhen(c.NotAfter.Sub(now)), c.NotAfter.UTC().Format("2006-01-02 15:04 MST"))
 	case days < float64(a.Opts.WarnDays):
-		rep.add(CheckExpiry, SevWarning, "%s expires in %d day(s) on %s", what, int(days), c.NotAfter.UTC().Format("2006-01-02"))
+		rep.add(CheckExpiry, SevWarning, "%s expires in %s on %s", what, expiryWhen(c.NotAfter.Sub(now)), c.NotAfter.UTC().Format("2006-01-02"))
 		return SevWarning
 	default:
 		return ""
@@ -148,9 +176,10 @@ func (a *Auditor) checkCertificates(ctx context.Context, rep *Report, t target.T
 	if len(leaf.DNSNames) == 0 && len(leaf.IPAddresses) == 0 {
 		rep.add(CheckCertificate, SevWarning, "certificate has no subjectAltName; modern clients ignore the Common Name")
 	}
-	if leaf.NotAfter.Sub(leaf.NotBefore) > maxPublicValidity+24*time.Hour && !info.SelfSigned {
-		rep.add(CheckCertificate, SevInfo, "validity period of %d days exceeds the 398-day limit for publicly trusted certificates (fine for a private CA)",
-			int(leaf.NotAfter.Sub(leaf.NotBefore).Hours()/24))
+	// RFC 5280 validity is inclusive of both bounds; allow one extra day.
+	if limit := maxPublicValidity(leaf.NotBefore); leaf.NotAfter.Sub(leaf.NotBefore) > time.Duration(limit+1)*24*time.Hour && !info.SelfSigned {
+		rep.add(CheckCertificate, SevInfo, "validity period of %d days exceeds the %d-day limit for publicly trusted certificates issued on %s (CA/B Forum; fine for a private CA)",
+			int(leaf.NotAfter.Sub(leaf.NotBefore).Hours()/24), limit, leaf.NotBefore.UTC().Format("2006-01-02"))
 	}
 
 	// Hostname.

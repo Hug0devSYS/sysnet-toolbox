@@ -37,7 +37,7 @@ is built for the fleet use case:
 | | Root certificate sent (useless bytes) | info |
 | `certificate` | RSA key < 2048 bits, ECDSA < P-256, SHA-1/MD5 signature | error |
 | | No subjectAltName | warning |
-| | Lifetime > 398 days (public CA limit) | info |
+| | Lifetime above the CA/Browser Forum limit for its issuance date: 398 days, 200 days from 2026-03-15, 100 days from 2027-03-15, 47 days from 2029-03-15 (ballot SC-081) | info |
 | `protocol` | SSLv3 enabled; neither TLS 1.2 nor TLS 1.3 | error |
 | | TLS 1.0 / TLS 1.1 enabled (RFC 8996) | warning |
 | | TLS 1.3 not supported | info |
@@ -79,7 +79,8 @@ tlsaudit [flags] -f targets.txt
 
   -json               JSON array of reports on stdout
   -summary            one line per target instead of full reports
-  -prom-file PATH     also write Prometheus metrics (atomic write)
+  -prom-file PATH     also write Prometheus metrics (atomic write; the
+                      directory is checked before the audit starts)
   -f FILE             read targets from FILE ('-' = stdin, '#' comments)
   -timeout 5s         per connection (dial + STARTTLS + handshake)
   -max-time 2m        overall budget per target

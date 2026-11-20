@@ -128,8 +128,8 @@ func Parse(spec string) (Target, error) {
 				continue
 			}
 			v = strings.TrimSuffix(strings.ToLower(v), ".")
-			if !validHostname(v) {
-				return Target{}, fmt.Errorf("sni=%q: invalid host name", v)
+			if !validHostname(v) || strings.Contains(v, "*") {
+				return Target{}, fmt.Errorf("sni=%q: invalid host name (no wildcards in SNI)", v)
 			}
 			t.ServerName = v
 		case "connect":

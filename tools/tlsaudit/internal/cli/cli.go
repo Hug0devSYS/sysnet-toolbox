@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -19,7 +20,7 @@ import (
 )
 
 // Version is overridden at build time with -ldflags "-X .../cli.Version=x.y.z".
-var Version = "0.1.1"
+var Version = "0.1.2"
 
 // Exit codes (Nagios/Icinga compatible).
 const (
@@ -152,6 +153,12 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer, deps *Dep
 	}
 	if deps == nil {
 		deps = &Deps{}
+	}
+	if cfg.promFile != "" {
+		// Fail before a long audit, not after it.
+		if err := checkWritableDir(cfg.promFile); err != nil {
+			return fail("--prom-file: %v", err)
+		}
 	}
 
 	var targets []target.Target
@@ -330,6 +337,21 @@ func loadRoots(path string, only bool) (*x509.CertPool, error) {
 		return nil, fmt.Errorf("%s: no PEM certificate found", path)
 	}
 	return pool, nil
+}
+
+// checkWritableDir verifies that a file can be created next to path (the
+// Prometheus file is written to a temporary file there, then renamed).
+func checkWritableDir(path string) error {
+	if st, err := os.Stat(path); err == nil && st.IsDir() {
+		return fmt.Errorf("%s is a directory", path)
+	}
+	f, err := os.CreateTemp(filepath.Dir(path), ".tlsaudit-probe-*")
+	if err != nil {
+		return err
+	}
+	name := f.Name()
+	f.Close()
+	return os.Remove(name)
 }
 
 // parseInterleaved allows flags after positional arguments.
