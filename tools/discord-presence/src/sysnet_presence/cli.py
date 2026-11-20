@@ -31,6 +31,7 @@ TOOLS = {
     "subnet-planner": "IP address planning",
     "syslog-triage": "Log pattern triage",
     "cert-inventory": "Certificate store audit",
+    "ntp-skew": "NTP source consistency check",
 }
 
 # Launchers skipped when naming the tool: "sudo nftlint --live" is nftlint.
